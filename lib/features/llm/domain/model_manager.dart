@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -6,20 +6,32 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-import 'package:rfdictionary/features/llm/data/datasources/python_llm_datasource.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
 
 part 'model_manager.g.dart';
 
 enum ModelType {
   opusMtEnZh,
   opusMtZhEn,
-
-  marianMtEnDe,
-  marianMtEnFr,
-  marianMtEnEs,
-
-  m2m100_418m,
+  opusMtEnDe,
+  opusMtEnFr,
+  opusMtEnEs,
+  opusMtEnIt,
+  opusMtEnPt,
+  opusMtEnRu,
+  opusMtEnAr,
+  opusMtEnJa,
+  opusMtEnKo,
+  opusMtDeEn,
+  opusMtFrEn,
+  opusMtEsEn,
+  opusMtItEn,
+  opusMtPtEn,
+  opusMtRuEn,
+  opusMtArEn,
+  opusMtJaEn,
+  opusMtKoEn,
 }
 
 enum ModelDownloadStatus {
@@ -81,124 +93,128 @@ class HardwareRequirements {
 
 extension ModelTypeExtension on ModelType {
   String get displayName {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-        return 'OPUS-MT en\u2192zh (\u82F1\u8BD1\u4E2D)';
-      case ModelType.opusMtZhEn:
-        return 'OPUS-MT zh\u2192en (\u4E2D\u8BD1\u82F1)';
-      case ModelType.marianMtEnDe:
-        return 'MarianMT en\u2192de (\u82F1\u8BED\u2192\u5FB7\u8BED)';
-      case ModelType.marianMtEnFr:
-        return 'MarianMT en\u2192fr (\u82F1\u8BED\u2192\u6CD5\u8BED)';
-      case ModelType.marianMtEnEs:
-        return 'MarianMT en\u2192es (\u82F1\u8BED\u2192\u897F\u73ED\u7259\u8BED)';
-      case ModelType.m2m100_418m:
-        return 'M2M-100 418M (\u591A\u8BED\u8A00\u7FFB\u8BD1)';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh => 'OPUS-MT en→zh (英译中)',
+      ModelType.opusMtZhEn => 'OPUS-MT zh→en (中译英)',
+      ModelType.opusMtEnDe => 'OPUS-MT en→de (英译德)',
+      ModelType.opusMtEnFr => 'OPUS-MT en→fr (英译法)',
+      ModelType.opusMtEnEs => 'OPUS-MT en→es (英译西)',
+      ModelType.opusMtEnIt => 'OPUS-MT en→it (英译意)',
+      ModelType.opusMtEnPt => 'OPUS-MT en→pt (英译葡)',
+      ModelType.opusMtEnRu => 'OPUS-MT en→ru (英译俄)',
+      ModelType.opusMtEnAr => 'OPUS-MT en→ar (英译阿)',
+      ModelType.opusMtEnJa => 'OPUS-MT en→ja (英译日)',
+      ModelType.opusMtEnKo => 'OPUS-MT en→ko (英译韩)',
+      ModelType.opusMtDeEn => 'OPUS-MT de→en (德译英)',
+      ModelType.opusMtFrEn => 'OPUS-MT fr→en (法译英)',
+      ModelType.opusMtEsEn => 'OPUS-MT es→en (西译英)',
+      ModelType.opusMtItEn => 'OPUS-MT it→en (意译英)',
+      ModelType.opusMtPtEn => 'OPUS-MT pt→en (葡译英)',
+      ModelType.opusMtRuEn => 'OPUS-MT ru→en (俄译英)',
+      ModelType.opusMtArEn => 'OPUS-MT ar→en (阿译英)',
+      ModelType.opusMtJaEn => 'OPUS-MT ja→en (日译英)',
+      ModelType.opusMtKoEn => 'OPUS-MT ko→en (韩译英)',
+    };
   }
 
   String get description {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-      case ModelType.opusMtZhEn:
-        return 'Encoder-Decoder \u67B6\u6784\uFF0C\u4E13\u4E3A\u4E2D\u82F1\u4E92\u8BD1\u4F18\u5316\n\u4E13\u4E3A\u957F\u53E5\u548C\u6BB5\u843D\u7FFB\u8BD1\u8BBE\u8BA1';
-      case ModelType.marianMtEnDe:
-      case ModelType.marianMtEnFr:
-      case ModelType.marianMtEnEs:
-        return 'MarianNMT \u7FFB\u8BD1\u6A21\u578B\n\u8D28\u91CF\u9AD8\u3001\u901F\u5EA6\u5FEB';
-      case ModelType.m2m100_418m:
-        return 'Facebook M2M-100 \u591A\u8BED\u8A00\u6A21\u578B\n\u652F\u6301 100+ \u8BED\u8A00\u4E92\u8BD1';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn =>
+        'Encoder-Decoder 架构，专为中英互译优化\n专为长句和段落翻译设计',
+      _ => 'Helsinki-NLP OPUS-MT 翻译模型\n质量高、速度快',
+    };
   }
 
   String get folderName {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-        return 'opus-mt-en-zh';
-      case ModelType.opusMtZhEn:
-        return 'opus-mt-zh-en';
-      case ModelType.marianMtEnDe:
-        return 'marianmt-en-de';
-      case ModelType.marianMtEnFr:
-        return 'marianmt-en-fr';
-      case ModelType.marianMtEnEs:
-        return 'marianmt-en-es';
-      case ModelType.m2m100_418m:
-        return 'm2m100-418m';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh => 'opus-mt-en-zh',
+      ModelType.opusMtZhEn => 'opus-mt-zh-en',
+      ModelType.opusMtEnDe => 'opus-mt-en-de',
+      ModelType.opusMtEnFr => 'opus-mt-en-fr',
+      ModelType.opusMtEnEs => 'opus-mt-en-es',
+      ModelType.opusMtEnIt => 'opus-mt-en-it',
+      ModelType.opusMtEnPt => 'opus-mt-en-pt',
+      ModelType.opusMtEnRu => 'opus-mt-en-ru',
+      ModelType.opusMtEnAr => 'opus-mt-en-ar',
+      ModelType.opusMtEnJa => 'opus-mt-en-ja',
+      ModelType.opusMtEnKo => 'opus-mt-en-ko',
+      ModelType.opusMtDeEn => 'opus-mt-de-en',
+      ModelType.opusMtFrEn => 'opus-mt-fr-en',
+      ModelType.opusMtEsEn => 'opus-mt-es-en',
+      ModelType.opusMtItEn => 'opus-mt-it-en',
+      ModelType.opusMtPtEn => 'opus-mt-pt-en',
+      ModelType.opusMtRuEn => 'opus-mt-ru-en',
+      ModelType.opusMtArEn => 'opus-mt-ar-en',
+      ModelType.opusMtJaEn => 'opus-mt-ja-en',
+      ModelType.opusMtKoEn => 'opus-mt-ko-en',
+    };
   }
 
   String get sizeInfo {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-      case ModelType.opusMtZhEn:
-        return '\u7EA6150MB / ~150MB';
-      case ModelType.marianMtEnDe:
-      case ModelType.marianMtEnFr:
-      case ModelType.marianMtEnEs:
-        return '\u7EA6250MB / ~250MB';
-      case ModelType.m2m100_418m:
-        return '\u7EA61.5GB / ~1.5GB';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn => '约150MB / ~150MB',
+      _ => '约300MB / ~300MB',
+    };
   }
 
   int get approximateSizeBytes {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-      case ModelType.opusMtZhEn:
-        return 150 * 1024 * 1024;
-      case ModelType.marianMtEnDe:
-      case ModelType.marianMtEnFr:
-      case ModelType.marianMtEnEs:
-        return 250 * 1024 * 1024;
-      case ModelType.m2m100_418m:
-        return 1500 * 1024 * 1024;
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn => 150 * 1024 * 1024,
+      _ => 300 * 1024 * 1024,
+    };
   }
 
   String? get modelHubUrl {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-        return 'Helsinki-NLP/opus-mt-en-zh';
-      case ModelType.opusMtZhEn:
-        return 'Helsinki-NLP/opus-mt-zh-en';
-      case ModelType.marianMtEnDe:
-        return 'Helsinki-NLP/opus-mt-en-de';
-      case ModelType.marianMtEnFr:
-        return 'Helsinki-NLP/opus-mt-en-fr';
-      case ModelType.marianMtEnEs:
-        return 'Helsinki-NLP/opus-mt-en-es';
-      case ModelType.m2m100_418m:
-        return 'facebook/m2m100_418M';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh => 'Helsinki-NLP/opus-mt-en-zh',
+      ModelType.opusMtZhEn => 'Helsinki-NLP/opus-mt-zh-en',
+      ModelType.opusMtEnDe => 'Helsinki-NLP/opus-mt-en-de',
+      ModelType.opusMtEnFr => 'Helsinki-NLP/opus-mt-en-fr',
+      ModelType.opusMtEnEs => 'Helsinki-NLP/opus-mt-en-es',
+      ModelType.opusMtEnIt => 'Helsinki-NLP/opus-mt-en-it',
+      ModelType.opusMtEnPt => 'Helsinki-NLP/opus-mt-en-pt',
+      ModelType.opusMtEnRu => 'Helsinki-NLP/opus-mt-en-ru',
+      ModelType.opusMtEnAr => 'Helsinki-NLP/opus-mt-en-ar',
+      ModelType.opusMtEnJa => 'Helsinki-NLP/opus-mt-en-ja',
+      ModelType.opusMtEnKo => 'Helsinki-NLP/opus-mt-en-ko',
+      ModelType.opusMtDeEn => 'Helsinki-NLP/opus-mt-de-en',
+      ModelType.opusMtFrEn => 'Helsinki-NLP/opus-mt-fr-en',
+      ModelType.opusMtEsEn => 'Helsinki-NLP/opus-mt-es-en',
+      ModelType.opusMtItEn => 'Helsinki-NLP/opus-mt-it-en',
+      ModelType.opusMtPtEn => 'Helsinki-NLP/opus-mt-pt-en',
+      ModelType.opusMtRuEn => 'Helsinki-NLP/opus-mt-ru-en',
+      ModelType.opusMtArEn => 'Helsinki-NLP/opus-mt-ar-en',
+      ModelType.opusMtJaEn => 'Helsinki-NLP/opus-mt-ja-en',
+      ModelType.opusMtKoEn => 'Helsinki-NLP/opus-mt-ko-en',
+    };
   }
 
   String? get modelScopeUrl {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-        return 'AI-ModelScope/opus-mt-en-zh';
-      case ModelType.opusMtZhEn:
-        return 'AI-ModelScope/opus-mt-zh-en';
-      case ModelType.marianMtEnDe:
-        return 'AI-ModelScope/marianmt-en-de';
-      case ModelType.marianMtEnFr:
-        return 'AI-ModelScope/marianmt-en-fr';
-      case ModelType.marianMtEnEs:
-        return 'AI-ModelScope/marianmt-en-es';
-      case ModelType.m2m100_418m:
-        return 'AI-ModelScope/m2m100-418m';
-    }
+    return switch (this) {
+      ModelType.opusMtEnZh => 'AI-ModelScope/opus-mt-en-zh',
+      ModelType.opusMtZhEn => 'AI-ModelScope/opus-mt-zh-en',
+      ModelType.opusMtEnDe => 'AI-ModelScope/opus-mt-en-de',
+      ModelType.opusMtEnFr => 'AI-ModelScope/opus-mt-en-fr',
+      ModelType.opusMtEnEs => 'AI-ModelScope/opus-mt-en-es',
+      ModelType.opusMtEnIt => 'AI-ModelScope/opus-mt-en-it',
+      ModelType.opusMtEnPt => 'AI-ModelScope/opus-mt-en-pt',
+      ModelType.opusMtEnRu => 'AI-ModelScope/opus-mt-en-ru',
+      ModelType.opusMtEnAr => 'AI-ModelScope/opus-mt-en-ar',
+      ModelType.opusMtEnJa => 'AI-ModelScope/opus-mt-en-ja',
+      ModelType.opusMtEnKo => 'AI-ModelScope/opus-mt-en-ko',
+      ModelType.opusMtDeEn => 'AI-ModelScope/opus-mt-de-en',
+      ModelType.opusMtFrEn => 'AI-ModelScope/opus-mt-fr-en',
+      ModelType.opusMtEsEn => 'AI-ModelScope/opus-mt-es-en',
+      ModelType.opusMtItEn => 'AI-ModelScope/opus-mt-it-en',
+      ModelType.opusMtPtEn => 'AI-ModelScope/opus-mt-pt-en',
+      ModelType.opusMtRuEn => 'AI-ModelScope/opus-mt-ru-en',
+      ModelType.opusMtArEn => 'AI-ModelScope/opus-mt-ar-en',
+      ModelType.opusMtJaEn => 'AI-ModelScope/opus-mt-ja-en',
+      ModelType.opusMtKoEn => 'AI-ModelScope/opus-mt-ko-en',
+    };
   }
 
   List<String> get requiredFiles {
-    if (this == ModelType.m2m100_418m) {
-      return [
-        'config.json',
-        'pytorch_model.bin',
-        'tokenizer.json',
-        'vocab.json',
-      ];
-    }
     return [
       'config.json',
       'pytorch_model.bin',
@@ -209,29 +225,68 @@ extension ModelTypeExtension on ModelType {
   }
 
   HardwareRequirements get hardwareRequirements {
-    switch (this) {
-      case ModelType.opusMtEnZh:
-      case ModelType.opusMtZhEn:
-        return const HardwareRequirements(
+    return switch (this) {
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn => const HardwareRequirements(
           minimumRamGb: 2,
           recommendedRamGb: 4,
           minimumStorageMb: 300,
-        );
-      case ModelType.marianMtEnDe:
-      case ModelType.marianMtEnFr:
-      case ModelType.marianMtEnEs:
-        return const HardwareRequirements(
+        ),
+      _ => const HardwareRequirements(
           minimumRamGb: 3,
           recommendedRamGb: 6,
           minimumStorageMb: 500,
-        );
-      case ModelType.m2m100_418m:
-        return const HardwareRequirements(
-          minimumRamGb: 6,
-          recommendedRamGb: 12,
-          minimumStorageMb: 3000,
-        );
-    }
+        ),
+    };
+  }
+
+  (String, String) get languagePair {
+    return switch (this) {
+      ModelType.opusMtEnZh => ('en', 'zh'),
+      ModelType.opusMtZhEn => ('zh', 'en'),
+      ModelType.opusMtEnDe => ('en', 'de'),
+      ModelType.opusMtEnFr => ('en', 'fr'),
+      ModelType.opusMtEnEs => ('en', 'es'),
+      ModelType.opusMtEnIt => ('en', 'it'),
+      ModelType.opusMtEnPt => ('en', 'pt'),
+      ModelType.opusMtEnRu => ('en', 'ru'),
+      ModelType.opusMtEnAr => ('en', 'ar'),
+      ModelType.opusMtEnJa => ('en', 'ja'),
+      ModelType.opusMtEnKo => ('en', 'ko'),
+      ModelType.opusMtDeEn => ('de', 'en'),
+      ModelType.opusMtFrEn => ('fr', 'en'),
+      ModelType.opusMtEsEn => ('es', 'en'),
+      ModelType.opusMtItEn => ('it', 'en'),
+      ModelType.opusMtPtEn => ('pt', 'en'),
+      ModelType.opusMtRuEn => ('ru', 'en'),
+      ModelType.opusMtArEn => ('ar', 'en'),
+      ModelType.opusMtJaEn => ('ja', 'en'),
+      ModelType.opusMtKoEn => ('ko', 'en'),
+    };
+  }
+
+  String get pythonModelTypeKey {
+    return switch (this) {
+      ModelType.opusMtEnZh => 'opus_mt_en_zh',
+      ModelType.opusMtZhEn => 'opus_mt_zh_en',
+      ModelType.opusMtEnDe => 'opus_mt_en_de',
+      ModelType.opusMtEnFr => 'opus_mt_en_fr',
+      ModelType.opusMtEnEs => 'opus_mt_en_es',
+      ModelType.opusMtEnIt => 'opus_mt_en_it',
+      ModelType.opusMtEnPt => 'opus_mt_en_pt',
+      ModelType.opusMtEnRu => 'opus_mt_en_ru',
+      ModelType.opusMtEnAr => 'opus_mt_en_ar',
+      ModelType.opusMtEnJa => 'opus_mt_en_ja',
+      ModelType.opusMtEnKo => 'opus_mt_en_ko',
+      ModelType.opusMtDeEn => 'opus_mt_de_en',
+      ModelType.opusMtFrEn => 'opus_mt_fr_en',
+      ModelType.opusMtEsEn => 'opus_mt_es_en',
+      ModelType.opusMtItEn => 'opus_mt_it_en',
+      ModelType.opusMtPtEn => 'opus_mt_pt_en',
+      ModelType.opusMtRuEn => 'opus_mt_ru_en',
+      ModelType.opusMtArEn => 'opus_mt_ar_en',
+      ModelType.opusMtJaEn => 'opus_mt_ja_en',
+      ModelType.opusMtKoEn => 'opus_mt_ko_en',
+    };
   }
 }
 
@@ -439,7 +494,7 @@ class ModelManager extends _$ModelManager {
       final llmDataSource = _ref.read(llmDataSourceProvider);
       if (llmDataSource is PythonLlmDataSource) {
         final result = await llmDataSource.downloadModel(
-          modelType: state.type.name,
+          modelType: state.type.pythonModelTypeKey,
           savePath: savePath,
           autoDetect: true,
         );

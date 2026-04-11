@@ -1,5 +1,5 @@
-name: rfdictionary
-description: "11Translator - 跨平台翻译词典应用"
+name: rftranslator
+description: "rftranslator - 跨平台翻译词典应用"
 publish_to: 'none'
 version: 1.0.0+1
 

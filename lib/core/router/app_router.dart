@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/core/utils/platform_utils.dart';
-import 'package:rfdictionary/features/dictionary/presentation/screens/dictionary_manager_screen.dart';
-import 'package:rfdictionary/features/dictionary/presentation/screens/home_screen.dart';
-import 'package:rfdictionary/features/dictionary/presentation/screens/word_detail_screen.dart';
-import 'package:rfdictionary/features/favorites/presentation/screens/favorites_screen.dart';
-import 'package:rfdictionary/features/history/presentation/screens/history_screen.dart';
-import 'package:rfdictionary/features/llm/presentation/screens/model_download_screen.dart';
-import 'package:rfdictionary/features/settings/presentation/screens/settings_screen.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/utils/platform_utils.dart';
+import 'package:rftranslator/features/dictionary/presentation/screens/dictionary_manager_screen.dart';
+import 'package:rftranslator/features/dictionary/presentation/screens/home_screen.dart';
+import 'package:rftranslator/features/dictionary/presentation/screens/word_detail_screen.dart';
+import 'package:rftranslator/features/favorites/presentation/screens/favorites_screen.dart';
+import 'package:rftranslator/features/history/presentation/screens/history_screen.dart';
+import 'package:rftranslator/features/llm/presentation/screens/model_download_screen.dart';
+import 'package:rftranslator/features/settings/presentation/screens/settings_screen.dart';
+import 'package:rftranslator/features/translation/presentation/screens/translation_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -17,7 +18,8 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 typedef NavDest = ({IconData icon, IconData selectedIcon, String labelKey, String route});
 
 const List<NavDest> _destinations = [
-  (icon: Icons.book_outlined, selectedIcon: Icons.book, labelKey: 'dictionary', route: '/'),
+  (icon: Icons.translate_outlined, selectedIcon: Icons.translate, labelKey: 'translate', route: '/'),
+  (icon: Icons.book_outlined, selectedIcon: Icons.book, labelKey: 'dictionary', route: '/dictionary'),
   (icon: Icons.star_outlined, selectedIcon: Icons.star, labelKey: 'favorites', route: '/favorites'),
   (icon: Icons.history, selectedIcon: Icons.history, labelKey: 'history', route: '/history'),
   (icon: Icons.settings_outlined, selectedIcon: Icons.settings, labelKey: 'settings', route: '/settings'),
@@ -26,6 +28,7 @@ const List<NavDest> _destinations = [
 String _getLabel(BuildContext context, String labelKey) {
   final l10n = AppLocalizations.of(context);
   return switch (labelKey) {
+    'translate' => l10n.translate,
     'dictionary' => l10n.dictionary,
     'favorites' => l10n.favorites,
     'history' => l10n.history,
@@ -46,6 +49,10 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/',
+          builder: (context, state) => const TranslationScreen(),
+        ),
+        GoRoute(
+          path: '/dictionary',
           builder: (context, state) => const HomeScreen(),
           routes: [
             GoRoute(
@@ -104,9 +111,13 @@ class _ScaffoldWithNavigationState extends ConsumerState<_ScaffoldWithNavigation
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
     for (int i = 0; i < _destinations.length; i++) {
-      if (location == _destinations[i].route) {
+      if (location == _destinations[i].route ||
+          location.startsWith('${_destinations[i].route}/')) {
         return i;
       }
+    }
+    if (location.startsWith('/dictionary')) {
+      return 1;
     }
     return 0;
   }

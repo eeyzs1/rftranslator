@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/features/dictionary/presentation/providers/search_provider.dart';
-import 'package:rfdictionary/features/translation/domain/translation_history_provider.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/dictionary/presentation/providers/search_provider.dart';
+import 'package:rftranslator/features/translation/domain/translation_history_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -44,7 +44,7 @@ class HomeScreen extends ConsumerWidget {
                 },
                 onSubmitted: (value) {
                   if (value.isNotEmpty) {
-                    context.push('/word/${Uri.encodeComponent(value)}');
+                    context.push('/dictionary/word/${Uri.encodeComponent(value)}');
                   }
                 },
               ),
@@ -84,7 +84,7 @@ class HomeScreen extends ConsumerWidget {
               leading: const Icon(Icons.search, size: 20),
               title: Text(word),
               onTap: () {
-                context.push('/word/${Uri.encodeComponent(word)}');
+                context.push('/dictionary/word/${Uri.encodeComponent(word)}');
               },
             );
           },
@@ -150,7 +150,7 @@ class HomeScreen extends ConsumerWidget {
                       color: item.isFavorite ? Colors.amber : null,
                     ),
                     onTap: () {
-                      context.push('/word/${Uri.encodeComponent(item.sourceText)}');
+                      context.push('/dictionary/word/${Uri.encodeComponent(item.sourceText)}');
                     },
                   );
                 },

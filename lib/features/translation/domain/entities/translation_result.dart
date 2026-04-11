@@ -1,5 +1,5 @@
-import 'package:rfdictionary/features/translation/domain/entities/language.dart';
-import 'package:rfdictionary/features/translation/domain/entities/translation_source.dart';
+﻿import 'package:rftranslator/features/translation/domain/entities/language.dart';
+import 'package:rftranslator/features/translation/domain/entities/translation_source.dart';
 
 const _unset = Object();
 

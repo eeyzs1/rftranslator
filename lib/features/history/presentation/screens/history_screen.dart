@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/features/translation/domain/translation_history_provider.dart';
-import 'package:rfdictionary/features/translation/data/models/translation_history.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/translation/domain/translation_history_provider.dart';
+import 'package:rftranslator/features/translation/data/models/translation_history.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});

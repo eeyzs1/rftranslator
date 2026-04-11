@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/core/utils/platform_utils.dart';
-import 'package:rfdictionary/features/llm/domain/model_manager.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/utils/platform_utils.dart';
+import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 
 const List<Color> _presetColors = [
   Color(0xFFE8002D),

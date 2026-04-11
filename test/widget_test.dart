@@ -1,8 +1,8 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
-import 'package:rfdictionary/features/dictionary/domain/entities/word_entry.dart';
-import 'package:rfdictionary/features/translation/domain/entities/language.dart';
-import 'package:rfdictionary/features/translation/domain/entities/translation_source.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/dictionary/domain/entities/word_entry.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
+import 'package:rftranslator/features/translation/domain/entities/translation_source.dart';
 
 bool _isWordOrPhrase(String text) {
   final cleaned = text.trim();

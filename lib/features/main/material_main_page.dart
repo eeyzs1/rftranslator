@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/features/dictionary/presentation/screens/home_screen.dart';
-import 'package:rfdictionary/features/favorites/presentation/screens/favorites_screen.dart';
-import 'package:rfdictionary/features/history/presentation/screens/history_screen.dart';
-import 'package:rfdictionary/features/settings/presentation/screens/settings_screen.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/dictionary/presentation/screens/home_screen.dart';
+import 'package:rftranslator/features/favorites/presentation/screens/favorites_screen.dart';
+import 'package:rftranslator/features/history/presentation/screens/history_screen.dart';
+import 'package:rftranslator/features/settings/presentation/screens/settings_screen.dart';
 
 class MaterialMainPage extends ConsumerStatefulWidget {
   const MaterialMainPage({super.key});

@@ -1,16 +1,17 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rfdictionary/core/di/providers.dart';
-import 'package:rfdictionary/features/dictionary/data/datasources/stardict_datasource.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_repository.dart';
-import 'package:rfdictionary/features/dictionary/domain/entities/word_entry.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_manager.dart';
-import 'package:rfdictionary/features/llm/data/datasources/python_llm_datasource.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
-import 'package:rfdictionary/features/translation/domain/entities/language.dart';
-import 'package:rfdictionary/features/translation/domain/entities/translation_result.dart';
-import 'package:rfdictionary/features/translation/domain/entities/translation_source.dart';
-import 'package:rfdictionary/features/translation/domain/translation_history_provider.dart';
+import 'package:rftranslator/core/di/providers.dart';
+import 'package:rftranslator/features/dictionary/data/datasources/stardict_datasource.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_repository.dart';
+import 'package:rftranslator/features/dictionary/domain/entities/word_entry.dart';
+import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
+import 'package:rftranslator/features/translation/domain/entities/translation_result.dart';
+import 'package:rftranslator/features/translation/domain/entities/translation_source.dart';
+import 'package:rftranslator/features/translation/domain/translation_history_provider.dart';
 
 const _unset = Object();
 
@@ -20,6 +21,7 @@ class TranslationState {
   final Language sourceLang;
   final Language targetLang;
   final bool isTranslating;
+  final bool isTranslatingWithLLM;
   final String? error;
   final bool hasDictionaryResult;
   final bool hasLLMResult;
@@ -28,6 +30,7 @@ class TranslationState {
   final List<String>? definitions;
   final List<String>? examples;
   final bool isWordOrPhrase;
+  final String? llmTranslation;
 
   TranslationState({
     this.sourceText = '',
@@ -35,6 +38,7 @@ class TranslationState {
     this.sourceLang = Language.english,
     this.targetLang = Language.chinese,
     this.isTranslating = false,
+    this.isTranslatingWithLLM = false,
     this.error,
     this.hasDictionaryResult = false,
     this.hasLLMResult = false,
@@ -43,6 +47,7 @@ class TranslationState {
     this.definitions,
     this.examples,
     this.isWordOrPhrase = false,
+    this.llmTranslation,
   });
 
   TranslationState copyWith({
@@ -51,6 +56,7 @@ class TranslationState {
     Language? sourceLang,
     Language? targetLang,
     bool? isTranslating,
+    bool? isTranslatingWithLLM,
     Object? error = _unset,
     bool? hasDictionaryResult,
     bool? hasLLMResult,
@@ -59,6 +65,7 @@ class TranslationState {
     List<String>? definitions,
     List<String>? examples,
     bool? isWordOrPhrase,
+    Object? llmTranslation = _unset,
   }) {
     return TranslationState(
       sourceText: sourceText ?? this.sourceText,
@@ -66,6 +73,7 @@ class TranslationState {
       sourceLang: sourceLang ?? this.sourceLang,
       targetLang: targetLang ?? this.targetLang,
       isTranslating: isTranslating ?? this.isTranslating,
+      isTranslatingWithLLM: isTranslatingWithLLM ?? this.isTranslatingWithLLM,
       error: identical(error, _unset) ? this.error : error as String?,
       hasDictionaryResult: hasDictionaryResult ?? this.hasDictionaryResult,
       hasLLMResult: hasLLMResult ?? this.hasLLMResult,
@@ -74,8 +82,80 @@ class TranslationState {
       definitions: definitions ?? this.definitions,
       examples: examples ?? this.examples,
       isWordOrPhrase: isWordOrPhrase ?? this.isWordOrPhrase,
+      llmTranslation: identical(llmTranslation, _unset) ? this.llmTranslation : llmTranslation as String?,
     );
   }
+}
+
+DictionaryType? _findDictionaryTypeForLangPair(
+  Set<DictionaryType> selected,
+  Language source,
+  Language target,
+) {
+  for (final dict in selected) {
+    final pair = dict.languagePair;
+    if (pair == null) continue;
+    final pairSource = _languagePairToSource(pair);
+    final pairTarget = _languagePairToTarget(pair);
+    if (pairSource == source && pairTarget == target) {
+      return dict;
+    }
+  }
+  return null;
+}
+
+Language _languagePairToSource(LanguagePair pair) {
+  return switch (pair) {
+    LanguagePair.englishChinese => Language.english,
+    LanguagePair.englishFrench => Language.english,
+    LanguagePair.englishGerman => Language.english,
+    LanguagePair.englishSpanish => Language.english,
+    LanguagePair.englishItalian => Language.english,
+    LanguagePair.englishPortuguese => Language.english,
+    LanguagePair.englishRussian => Language.english,
+    LanguagePair.englishArabic => Language.english,
+    LanguagePair.englishJapanese => Language.english,
+    LanguagePair.englishKorean => Language.english,
+    LanguagePair.chineseEnglish => Language.chinese,
+    LanguagePair.frenchEnglish => Language.french,
+    LanguagePair.germanEnglish => Language.german,
+    LanguagePair.spanishEnglish => Language.spanish,
+    LanguagePair.italianEnglish => Language.italian,
+    LanguagePair.portugueseEnglish => Language.portuguese,
+    LanguagePair.russianEnglish => Language.russian,
+  };
+}
+
+Language _languagePairToTarget(LanguagePair pair) {
+  return switch (pair) {
+    LanguagePair.englishChinese => Language.chinese,
+    LanguagePair.englishFrench => Language.french,
+    LanguagePair.englishGerman => Language.german,
+    LanguagePair.englishSpanish => Language.spanish,
+    LanguagePair.englishItalian => Language.italian,
+    LanguagePair.englishPortuguese => Language.portuguese,
+    LanguagePair.englishRussian => Language.russian,
+    LanguagePair.englishArabic => Language.arabic,
+    LanguagePair.englishJapanese => Language.japanese,
+    LanguagePair.englishKorean => Language.korean,
+    LanguagePair.chineseEnglish => Language.english,
+    LanguagePair.frenchEnglish => Language.english,
+    LanguagePair.germanEnglish => Language.english,
+    LanguagePair.spanishEnglish => Language.english,
+    LanguagePair.italianEnglish => Language.english,
+    LanguagePair.portugueseEnglish => Language.english,
+    LanguagePair.russianEnglish => Language.english,
+  };
+}
+
+ModelType? _findModelTypeForLangPair(Language source, Language target) {
+  for (final model in ModelType.values) {
+    final (src, tgt) = model.languagePair;
+    if (src == source.code && tgt == target.code) {
+      return model;
+    }
+  }
+  return null;
 }
 
 class TranslationNotifier extends StateNotifier<TranslationState> {
@@ -110,119 +190,203 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
 
     state = state.copyWith(
       isTranslating: true,
+      isTranslatingWithLLM: false,
       error: null,
+      hasDictionaryResult: false,
+      hasLLMResult: false,
+      llmTranslation: null,
+      targetText: '',
+      phonetic: null,
+      definitions: null,
+      examples: null,
     );
 
     try {
-      await _translateWithTraditional();
+      final llmService = _ref.read(llmServiceProvider.notifier);
+      final isWordOrPhrase = llmService.isWordOrPhrase(state.sourceText);
+      state = state.copyWith(isWordOrPhrase: isWordOrPhrase);
+
+      if (isWordOrPhrase) {
+        await _translateWordOrPhrase();
+      } else {
+        await _translateSentence();
+      }
     } catch (e) {
       state = state.copyWith(
         isTranslating: false,
+        isTranslatingWithLLM: false,
         error: '\u7FFB\u8BD1\u5931\u8D25\uFF1A${e.toString()}',
       );
     }
   }
 
-  Future<void> _translateWithTraditional() async {
-    String? translationResult;
-    String? dictionaryExplanation;
-    TranslationSource source = TranslationSource.dictionary;
-    bool isWordOrPhrase = false;
-    String? phonetic;
-    List<String>? definitions;
-    List<String>? examples;
+  Future<void> _translateWordOrPhrase() async {
+    final dictManager = _ref.read(dictionaryManagerProvider.notifier);
+    final dictState = _ref.read(dictionaryManagerProvider);
+    final dictPath = await dictManager.getValidDictionaryPath();
 
-    final dictPath = await _ref.read(dictionaryManagerProvider.notifier).getValidDictionaryPath();
+    final matchedDictType = _findDictionaryTypeForLangPair(
+      dictState.selectedDictionaries,
+      state.sourceLang,
+      state.targetLang,
+    );
 
-    final llmService = _ref.read(llmServiceProvider.notifier);
-    isWordOrPhrase = llmService.isWordOrPhrase(state.sourceText);
-    final llmDataSource = llmService.dataSource;
-
-    if (isWordOrPhrase) {
-      if (state.sourceLang == Language.english && state.targetLang == Language.chinese) {
-        WordEntry? wordEntry;
-
-        await _dictionaryRepository.setPath(dictPath);
-        try {
-          wordEntry = await _dictionaryRepository.getWord(state.sourceText);
-        } catch (_) {
-        }
-
-        if (wordEntry != null && wordEntry.definitions.isNotEmpty) {
-          translationResult = wordEntry.definitions.first.chinese;
-          phonetic = wordEntry.phonetic;
-          definitions = wordEntry.definitions.map((d) => d.chinese).toList();
-          examples = wordEntry.examples.map((e) => e.english).toList();
-          dictionaryExplanation = wordEntry.definitions.map((d) => '${d.partOfSpeech} ${d.chinese}').join('\n');
-          source = TranslationSource.dictionary;
-        }
-      }
-
-      if (translationResult == null || translationResult.isEmpty) {
-        try {
-          if (llmDataSource is PythonLlmDataSource) {
-            translationResult = await llmDataSource.translateWithOpusMt(
-              state.sourceText,
-              sourceLang: state.sourceLang == Language.english ? 'en' : 'zh',
-              targetLang: state.targetLang == Language.chinese ? 'zh' : 'en',
-            );
-            source = TranslationSource.opusMt;
-          }
-        } catch (_) {
-          translationResult = '\u65E0\u6CD5\u7FFB\u8BD1';
-        }
-      }
-    } else {
+    if (matchedDictType != null && dictPath != null) {
+      WordEntry? wordEntry;
+      await _dictionaryRepository.setPath(dictPath);
       try {
-        if (llmDataSource is PythonLlmDataSource) {
-          translationResult = await llmDataSource.translateWithOpusMt(
-            state.sourceText,
-            sourceLang: state.sourceLang == Language.english ? 'en' : 'zh',
-            targetLang: state.targetLang == Language.chinese ? 'zh' : 'en',
-          );
-          source = TranslationSource.opusMt;
-        }
-      } catch (e) {
-        translationResult = '\u65E0\u6CD5\u7FFB\u8BD1';
+        wordEntry = await _dictionaryRepository.getWord(state.sourceText);
+      } catch (_) {}
+
+      if (wordEntry != null && wordEntry.definitions.isNotEmpty) {
+        final translationResult = wordEntry.definitions.first.chinese;
+        final phonetic = wordEntry.phonetic;
+        final definitions = wordEntry.definitions.map((d) => d.chinese).toList();
+        final examples = wordEntry.examples.map((e) => e.english).toList();
+        final dictionaryExplanation = wordEntry.definitions.map((d) => '${d.partOfSpeech} ${d.chinese}').join('\n');
+
+        state = state.copyWith(
+          targetText: translationResult,
+          hasDictionaryResult: true,
+          phonetic: phonetic,
+          definitions: definitions,
+          examples: examples,
+          result: TranslationResult(
+            sourceText: state.sourceText,
+            targetText: translationResult,
+            sourceLang: state.sourceLang,
+            targetLang: state.targetLang,
+            translatedAt: DateTime.now(),
+            source: TranslationSource.dictionary,
+            dictionaryExplanation: dictionaryExplanation,
+            phonetic: phonetic,
+            definitions: definitions,
+            examples: examples,
+            isWordOrPhrase: true,
+          ),
+        );
       }
     }
 
-    final result = TranslationResult(
-      sourceText: state.sourceText,
-      targetText: translationResult ?? '',
-      sourceLang: state.sourceLang,
-      targetLang: state.targetLang,
-      translatedAt: DateTime.now(),
-      source: source,
-      dictionaryExplanation: dictionaryExplanation,
-      phonetic: phonetic,
-      definitions: definitions,
-      examples: examples,
-      isWordOrPhrase: isWordOrPhrase,
-    );
+    await _tryOpusMtTranslation();
+  }
+
+  Future<void> _translateSentence() async {
+    await _tryOpusMtTranslation();
+  }
+
+  Future<void> _tryOpusMtTranslation() async {
+    final llmService = _ref.read(llmServiceProvider.notifier);
+    final llmDataSource = llmService.dataSource;
+
+    if (llmDataSource is! PythonLlmDataSource) {
+      state = state.copyWith(isTranslating: false);
+      return;
+    }
+
+    final modelType = _findModelTypeForLangPair(state.sourceLang, state.targetLang);
+    if (modelType == null) {
+      if (!state.hasDictionaryResult) {
+        state = state.copyWith(
+          isTranslating: false,
+          targetText: '\u65E0\u53EF\u7528\u7684\u7FFB\u8BD1\u6A21\u578B',
+        );
+      } else {
+        state = state.copyWith(isTranslating: false);
+      }
+      return;
+    }
+
+    final modelManager = _ref.read(modelManagerProvider.notifier);
+    final isDownloaded = await modelManager.isModelDownloaded(modelType);
+    if (!isDownloaded) {
+      if (!state.hasDictionaryResult) {
+        state = state.copyWith(
+          isTranslating: false,
+          targetText: '\u8BF7\u5148\u4E0B\u8F7D ${modelType.displayName} \u6A21\u578B',
+        );
+      } else {
+        state = state.copyWith(isTranslating: false);
+      }
+      return;
+    }
+
+    state = state.copyWith(isTranslatingWithLLM: true);
 
     try {
+      final llmResult = await llmDataSource.translateWithOpusMt(
+        state.sourceText,
+        sourceLang: state.sourceLang.code,
+        targetLang: state.targetLang.code,
+      );
+
+      if (state.hasDictionaryResult) {
+        state = state.copyWith(
+          isTranslating: false,
+          isTranslatingWithLLM: false,
+          hasLLMResult: true,
+          llmTranslation: llmResult,
+        );
+      } else {
+        state = state.copyWith(
+          isTranslating: false,
+          isTranslatingWithLLM: false,
+          hasLLMResult: true,
+          targetText: llmResult ?? '',
+          result: TranslationResult(
+            sourceText: state.sourceText,
+            targetText: llmResult ?? '',
+            sourceLang: state.sourceLang,
+            targetLang: state.targetLang,
+            translatedAt: DateTime.now(),
+            source: TranslationSource.opusMt,
+            isWordOrPhrase: state.isWordOrPhrase,
+          ),
+        );
+      }
+
+      _saveToHistory();
+    } catch (e) {
+      if (!state.hasDictionaryResult) {
+        state = state.copyWith(
+          isTranslating: false,
+          isTranslatingWithLLM: false,
+          error: 'OPUS-MT \u7FFB\u8BD1\u5931\u8D25\uFF1A${e.toString()}',
+        );
+      } else {
+        state = state.copyWith(
+          isTranslating: false,
+          isTranslatingWithLLM: false,
+        );
+      }
+    }
+  }
+
+  Future<void> _saveToHistory() async {
+    try {
+      final effectiveTarget = state.hasLLMResult && state.llmTranslation != null
+          ? state.llmTranslation!
+          : state.targetText;
+      final effectiveSource = state.hasLLMResult
+          ? TranslationSource.opusMt
+          : state.hasDictionaryResult
+              ? TranslationSource.dictionary
+              : TranslationSource.opusMt;
+
       final historyRepo = _ref.read(translationHistoryRepositoryProvider);
-      await historyRepo.addHistory(result);
+      await historyRepo.addHistory(TranslationResult(
+        sourceText: state.sourceText,
+        targetText: effectiveTarget,
+        sourceLang: state.sourceLang,
+        targetLang: state.targetLang,
+        translatedAt: DateTime.now(),
+        source: effectiveSource,
+        isWordOrPhrase: state.isWordOrPhrase,
+      ));
       _ref.invalidate(translationHistoryListProvider);
     } catch (_) {
       debugPrint('Failed to save translation history');
     }
-
-    final usedOpusMt = source == TranslationSource.opusMt;
-    final hasDictionaryResult = source == TranslationSource.dictionary && translationResult != '\u65E0\u6CD5\u7FFB\u8BD1';
-
-    state = state.copyWith(
-      targetText: translationResult,
-      isTranslating: false,
-      hasLLMResult: usedOpusMt,
-      hasDictionaryResult: hasDictionaryResult,
-      result: result,
-      phonetic: phonetic,
-      definitions: definitions,
-      examples: examples,
-      isWordOrPhrase: isWordOrPhrase,
-    );
   }
 
   void clear() {

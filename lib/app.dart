@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/core/utils/platform_utils.dart';
-import 'package:rfdictionary/features/main/presentation/screens/init_screen.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/utils/platform_utils.dart';
+import 'package:rftranslator/features/main/presentation/screens/init_screen.dart';
 
 fluent.AccentColor _toFluentAccentColor(Color color) {
   return fluent.AccentColor.swatch({
@@ -37,7 +37,7 @@ class App extends ConsumerWidget {
     if (isFluent) {
       final fluentAccentColor = _toFluentAccentColor(seedColor);
       return fluent.FluentApp(
-        title: 'RFDictionary',
+        title: 'rftranslator',
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -67,7 +67,7 @@ class App extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'RFDictionary',
+      title: 'rftranslator',
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

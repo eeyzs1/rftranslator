@@ -1,6 +1,6 @@
-import 'package:hive/hive.dart';
-import 'package:rfdictionary/features/translation/data/models/translation_history.dart';
-import 'package:rfdictionary/features/translation/domain/entities/translation_result.dart';
+﻿import 'package:hive/hive.dart';
+import 'package:rftranslator/features/translation/data/models/translation_history.dart';
+import 'package:rftranslator/features/translation/domain/entities/translation_result.dart';
 
 class TranslationHistoryRepository {
   static const String _boxName = 'translation_history';

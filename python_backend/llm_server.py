@@ -81,28 +81,58 @@ def get_best_download_source() -> str:
 
 
 def get_model_repo_id(model_type: str, source: str) -> str:
-    """
-    根据模型类型和下载源获取仓库 ID
-
-    Args:
-        model_type: 'opus_mt_en_zh' 或 'opus_mt_zh_en'
-        source: 下载源
-
-    Returns:
-        仓库 ID
-    """
     if source.startswith('huggingface'):
-        if model_type == 'opus_mt_en_zh':
-            return 'Helsinki-NLP/opus-mt-en-zh'
-        elif model_type == 'opus_mt_zh_en':
-            return 'Helsinki-NLP/opus-mt-zh-en'
+        repo_map = {
+            'opus_mt_en_zh': 'Helsinki-NLP/opus-mt-en-zh',
+            'opus_mt_zh_en': 'Helsinki-NLP/opus-mt-zh-en',
+            'opus_mt_en_de': 'Helsinki-NLP/opus-mt-en-de',
+            'opus_mt_en_fr': 'Helsinki-NLP/opus-mt-en-fr',
+            'opus_mt_en_es': 'Helsinki-NLP/opus-mt-en-es',
+            'opus_mt_en_it': 'Helsinki-NLP/opus-mt-en-it',
+            'opus_mt_en_pt': 'Helsinki-NLP/opus-mt-en-pt',
+            'opus_mt_en_ru': 'Helsinki-NLP/opus-mt-en-ru',
+            'opus_mt_en_ar': 'Helsinki-NLP/opus-mt-en-ar',
+            'opus_mt_en_ja': 'Helsinki-NLP/opus-mt-en-ja',
+            'opus_mt_en_ko': 'Helsinki-NLP/opus-mt-en-ko',
+            'opus_mt_de_en': 'Helsinki-NLP/opus-mt-de-en',
+            'opus_mt_fr_en': 'Helsinki-NLP/opus-mt-fr-en',
+            'opus_mt_es_en': 'Helsinki-NLP/opus-mt-es-en',
+            'opus_mt_it_en': 'Helsinki-NLP/opus-mt-it-en',
+            'opus_mt_pt_en': 'Helsinki-NLP/opus-mt-pt-en',
+            'opus_mt_ru_en': 'Helsinki-NLP/opus-mt-ru-en',
+            'opus_mt_ar_en': 'Helsinki-NLP/opus-mt-ar-en',
+            'opus_mt_ja_en': 'Helsinki-NLP/opus-mt-ja-en',
+            'opus_mt_ko_en': 'Helsinki-NLP/opus-mt-ko-en',
+        }
     elif source == 'modelscope':
-        if model_type == 'opus_mt_en_zh':
-            return 'AI-ModelScope/opus-mt-en-zh'
-        elif model_type == 'opus_mt_zh_en':
-            return 'AI-ModelScope/opus-mt-zh-en'
+        repo_map = {
+            'opus_mt_en_zh': 'AI-ModelScope/opus-mt-en-zh',
+            'opus_mt_zh_en': 'AI-ModelScope/opus-mt-zh-en',
+            'opus_mt_en_de': 'AI-ModelScope/opus-mt-en-de',
+            'opus_mt_en_fr': 'AI-ModelScope/opus-mt-en-fr',
+            'opus_mt_en_es': 'AI-ModelScope/opus-mt-en-es',
+            'opus_mt_en_it': 'AI-ModelScope/opus-mt-en-it',
+            'opus_mt_en_pt': 'AI-ModelScope/opus-mt-en-pt',
+            'opus_mt_en_ru': 'AI-ModelScope/opus-mt-en-ru',
+            'opus_mt_en_ar': 'AI-ModelScope/opus-mt-en-ar',
+            'opus_mt_en_ja': 'AI-ModelScope/opus-mt-en-ja',
+            'opus_mt_en_ko': 'AI-ModelScope/opus-mt-en-ko',
+            'opus_mt_de_en': 'AI-ModelScope/opus-mt-de-en',
+            'opus_mt_fr_en': 'AI-ModelScope/opus-mt-fr-en',
+            'opus_mt_es_en': 'AI-ModelScope/opus-mt-es-en',
+            'opus_mt_it_en': 'AI-ModelScope/opus-mt-it-en',
+            'opus_mt_pt_en': 'AI-ModelScope/opus-mt-pt-en',
+            'opus_mt_ru_en': 'AI-ModelScope/opus-mt-ru-en',
+            'opus_mt_ar_en': 'AI-ModelScope/opus-mt-ar-en',
+            'opus_mt_ja_en': 'AI-ModelScope/opus-mt-ja-en',
+            'opus_mt_ko_en': 'AI-ModelScope/opus-mt-ko-en',
+        }
+    else:
+        raise ValueError(f"Unsupported source: {source}")
 
-    raise ValueError(f"Unsupported model type or source: {model_type}, {source}")
+    if model_type in repo_map:
+        return repo_map[model_type]
+    raise ValueError(f"Unsupported model type: {model_type}")
 
 
 class OpusMtTranslator:
@@ -124,13 +154,7 @@ class OpusMtTranslator:
         return f"{source_lang}-{target_lang}"
 
     def _get_model_folder_name(self, source_lang: str, target_lang: str) -> str:
-        """获取模型文件夹名称"""
-        if source_lang == 'en' and target_lang == 'zh':
-            return 'opus-mt-en-zh'
-        elif source_lang == 'zh' and target_lang == 'en':
-            return 'opus-mt-zh-en'
-        else:
-            raise ValueError(f"不支持的语言对: {source_lang}->{target_lang}")
+        return f'opus-mt-{source_lang}-{target_lang}'
 
     def _load_model(self, source_lang: str, target_lang: str):
         """加载模型和分词器"""

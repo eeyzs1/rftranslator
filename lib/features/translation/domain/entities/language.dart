@@ -7,6 +7,9 @@ enum Language {
   german,
   spanish,
   russian,
+  italian,
+  portuguese,
+  arabic,
 }
 
 extension LanguageExtension on Language {
@@ -20,6 +23,9 @@ extension LanguageExtension on Language {
       Language.german => 'Deutsch',
       Language.spanish => 'Español',
       Language.russian => 'Русский',
+      Language.italian => 'Italiano',
+      Language.portuguese => 'Português',
+      Language.arabic => 'العربية',
     };
   }
 
@@ -33,6 +39,9 @@ extension LanguageExtension on Language {
       Language.german => 'de',
       Language.spanish => 'es',
       Language.russian => 'ru',
+      Language.italian => 'it',
+      Language.portuguese => 'pt',
+      Language.arabic => 'ar',
     };
   }
 

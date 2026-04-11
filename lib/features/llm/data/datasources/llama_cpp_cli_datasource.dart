@@ -1,9 +1,9 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
 
 class LlamaCppCliDataSource implements LlmDataSource {
   String? _modelPath;

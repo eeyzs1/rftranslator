@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
-import 'package:rfdictionary/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
 
 class UIStyleWrapper extends ConsumerWidget {
   final Widget child;
@@ -21,7 +21,7 @@ class UIStyleWrapper extends ConsumerWidget {
 
     if (effectiveStyle == UIStyle.fluent) {
       return fluent.FluentApp(
-        title: 'RFDictionary',
+        title: 'rftranslator',
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -50,7 +50,7 @@ class UIStyleWrapper extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'RFDictionary',
+      title: 'rftranslator',
       localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

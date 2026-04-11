@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,7 +26,7 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
-      'appTitle': 'RFDictionary',
+      'appTitle': 'rftranslator',
       'dictionary': 'Dictionary',
       'favorites': 'Favorites',
       'history': 'History',
@@ -123,6 +123,14 @@ class AppLocalizations {
       'copiedToClipboard': 'Copied to clipboard',
       'translationResult': 'Translation Result',
       'swapLanguages': 'Swap Languages',
+      'addToFavorites': 'Add to Favorites',
+      'removeFromFavorites': 'Remove from Favorites',
+      'lookupDictionary': 'Look up in Dictionary',
+      'translationSource': 'Source',
+      'sourceDictionary': 'Dictionary',
+      'sourceOpusMt': 'OPUS-MT',
+      'sourceTextLang': 'Source',
+      'targetTextLang': 'Target',
       'noSearchHistory': 'No search history',
       'noFavoritesYet': 'No favorites yet',
       'tapStarToFavorite': 'Tap \u2605 to favorite while searching',
@@ -133,7 +141,7 @@ class AppLocalizations {
       'initFailed': 'Initialization failed',
     },
     'zh': {
-      'appTitle': 'RFDictionary',
+      'appTitle': 'rftranslator',
       'dictionary': '\u8BCD\u5178',
       'favorites': '\u6536\u85CF',
       'history': '\u5386\u53F2',
@@ -230,6 +238,14 @@ class AppLocalizations {
       'copiedToClipboard': '\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F',
       'translationResult': '\u7FFB\u8BD1\u7ED3\u679C',
       'swapLanguages': '\u4EA4\u6362\u8BED\u8A00',
+      'addToFavorites': '\u6DFB\u52A0\u5230\u6536\u85CF',
+      'removeFromFavorites': '\u53D6\u6D88\u6536\u85CF',
+      'lookupDictionary': '\u67E5\u8BE2\u8BCD\u5178',
+      'translationSource': '\u6765\u6E90',
+      'sourceDictionary': '\u8BCD\u5178',
+      'sourceOpusMt': 'OPUS-MT',
+      'sourceTextLang': '\u6E90\u8BED\u8A00',
+      'targetTextLang': '\u76EE\u6807\u8BED\u8A00',
       'noSearchHistory': '\u6682\u65E0\u641C\u7D22\u8BB0\u5F55',
       'noFavoritesYet': '\u8FD8\u6CA1\u6709\u6536\u85CF',
       'tapStarToFavorite': '\u67E5\u8BCD\u65F6\u70B9\u51FB\u2605\u6536\u85CF',
@@ -341,6 +357,14 @@ class AppLocalizations {
   String get copiedToClipboard => _t('copiedToClipboard');
   String get translationResult => _t('translationResult');
   String get swapLanguages => _t('swapLanguages');
+  String get addToFavorites => _t('addToFavorites');
+  String get removeFromFavorites => _t('removeFromFavorites');
+  String get lookupDictionary => _t('lookupDictionary');
+  String get translationSource => _t('translationSource');
+  String get sourceDictionary => _t('sourceDictionary');
+  String get sourceOpusMt => _t('sourceOpusMt');
+  String get sourceTextLang => _t('sourceTextLang');
+  String get targetTextLang => _t('targetTextLang');
   String get noSearchHistory => _t('noSearchHistory');
   String get noFavoritesYet => _t('noFavoritesYet');
   String get tapStarToFavorite => _t('tapStarToFavorite');

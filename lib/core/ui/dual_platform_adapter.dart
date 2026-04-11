@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/core/utils/platform_utils.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/utils/platform_utils.dart';
 
 enum UIFramework { material, fluent }
 
@@ -32,7 +32,7 @@ class DualPlatformApp extends ConsumerWidget {
 
     if (framework == UIFramework.fluent) {
       return fluent.FluentApp(
-        title: 'RFDictionary',
+        title: 'rftranslator',
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
@@ -64,7 +64,7 @@ class DualPlatformApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'RFDictionary',
+      title: 'rftranslator',
       localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

@@ -1,6 +1,6 @@
-import 'package:rfdictionary/features/dictionary/domain/dictionary_repository.dart';
-import 'package:rfdictionary/features/dictionary/domain/entities/word_entry.dart';
-import 'package:rfdictionary/features/llm/data/datasources/python_llm_datasource.dart';
+﻿import 'package:rftranslator/features/dictionary/domain/dictionary_repository.dart';
+import 'package:rftranslator/features/dictionary/domain/entities/word_entry.dart';
+import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
 
 class StarDictDataSource implements DictionaryRepository {
   final PythonLlmDataSource? _pythonDataSource;

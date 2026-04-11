@@ -1,9 +1,9 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
 
 class _PendingRequest {
   final String requestId;
@@ -128,7 +128,7 @@ class PythonLlmDataSource implements LlmDataSource {
 
     final appDir = await getApplicationDocumentsDirectory();
     final appScript =
-        path.join(appDir.path, '11translator', 'python_backend', scriptName);
+        path.join(appDir.path, 'rftranslator', 'python_backend', scriptName);
     if (await File(appScript).exists()) {
       return appScript;
     }

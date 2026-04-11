@@ -1,4 +1,4 @@
-# 本地翻译架构指南 — Encoder-Decoder + 兜底 LLM
+﻿# 本地翻译架构指南 — Encoder-Decoder + 兜底 LLM
 
 ## 1. 架构概览
 
@@ -217,7 +217,7 @@ Future<void> translate() async {
 ### 模型存储路径
 
 ```
-Windows: %USERPROFILE%\Documents\11Translator\models\
+Windows: %USERPROFILE%\Documents\rftranslator\models\
 ├── opus-mt/
 │   ├── opus-mt-en-zh/
 │   └── opus-mt-zh-en/

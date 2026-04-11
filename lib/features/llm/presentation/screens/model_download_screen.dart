@@ -1,12 +1,12 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:rfdictionary/features/llm/domain/model_manager.dart';
-import 'package:rfdictionary/features/llm/domain/llm_service.dart';
-import 'package:rfdictionary/features/llm/data/datasources/python_llm_datasource.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
 
 class ModelDownloadScreen extends ConsumerStatefulWidget {
   const ModelDownloadScreen({super.key});

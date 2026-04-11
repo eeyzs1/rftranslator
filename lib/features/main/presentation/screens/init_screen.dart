@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/features/llm/domain/model_manager.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 
 class InitScreen extends ConsumerStatefulWidget {
   const InitScreen({super.key});
@@ -86,7 +86,7 @@ class _InitScreenState extends ConsumerState<InitScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                '11Translator',
+                'rftranslator',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 48),

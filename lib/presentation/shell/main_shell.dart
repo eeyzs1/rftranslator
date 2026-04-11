@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/core/utils/platform_utils.dart';
-import 'package:rfdictionary/presentation/shell/material_shell.dart';
-import 'package:rfdictionary/presentation/shell/fluent_shell.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/utils/platform_utils.dart';
+import 'package:rftranslator/presentation/shell/material_shell.dart';
+import 'package:rftranslator/presentation/shell/fluent_shell.dart';
 
 class MainShell extends ConsumerWidget {
   const MainShell({super.key});

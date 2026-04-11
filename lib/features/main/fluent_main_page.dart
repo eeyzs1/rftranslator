@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
-import 'package:rfdictionary/core/localization/app_localizations.dart';
-import 'package:rfdictionary/features/dictionary/presentation/screens/home_screen.dart';
-import 'package:rfdictionary/features/favorites/presentation/screens/favorites_screen.dart';
-import 'package:rfdictionary/features/history/presentation/screens/history_screen.dart';
-import 'package:rfdictionary/features/settings/presentation/screens/settings_screen.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/dictionary/presentation/screens/home_screen.dart';
+import 'package:rftranslator/features/favorites/presentation/screens/favorites_screen.dart';
+import 'package:rftranslator/features/history/presentation/screens/history_screen.dart';
+import 'package:rftranslator/features/settings/presentation/screens/settings_screen.dart';
 
 class FluentMainPage extends ConsumerStatefulWidget {
   const FluentMainPage({super.key});

@@ -1,5 +1,5 @@
-import 'package:hive/hive.dart';
-import 'package:rfdictionary/features/translation/domain/entities/language.dart';
+﻿import 'package:hive/hive.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
 
 part 'translation_history.g.dart';
 

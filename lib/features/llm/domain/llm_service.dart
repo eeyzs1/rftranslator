@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:rfdictionary/features/llm/data/datasources/python_llm_datasource.dart';
+import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
 
 part 'llm_service.g.dart';
 

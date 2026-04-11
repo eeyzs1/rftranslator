@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:rfdictionary/core/di/providers.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/core/di/providers.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 

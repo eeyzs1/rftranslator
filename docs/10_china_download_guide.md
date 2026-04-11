@@ -1,4 +1,4 @@
-# 国内用户模型下载指南
+﻿# 国内用户模型下载指南
 
 国内用户访问 Hugging Face 可能存在网络问题，本指南提供多种解决方案。
 
@@ -84,7 +84,7 @@ models/translation/
 ### 3.2 下载步骤
 
 1. 下载对应语言对的压缩包
-2. 解压到 `%USERPROFILE%\Documents\11Translator\models\translation\`
+2. 解压到 `%USERPROFILE%\Documents\rftranslator\models\translation\`
 3. 确保目录结构正确
 
 ---
@@ -116,7 +116,7 @@ export HTTPS_PROXY=http://127.0.0.1:7890
 ### 默认路径
 
 ```
-Windows: %USERPROFILE%\Documents\11Translator\models\translation\
+Windows: %USERPROFILE%\Documents\rftranslator\models\translation\
 ```
 
 ### 自定义路径

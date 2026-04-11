@@ -1,11 +1,11 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:rfdictionary/features/dictionary/domain/dictionary_manager.dart';
-import 'package:rfdictionary/core/localization/app_localizations.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/core/localization/app_localizations.dart';
 
 class DictionaryManagerScreen extends ConsumerStatefulWidget {
   const DictionaryManagerScreen({super.key});
