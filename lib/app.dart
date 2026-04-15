@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/router/app_router.dart';
 import 'package:rftranslator/core/utils/platform_utils.dart';
-import 'package:rftranslator/features/main/presentation/screens/init_screen.dart';
 
 fluent.AccentColor _toFluentAccentColor(Color color) {
   return fluent.AccentColor.swatch({
@@ -34,21 +34,37 @@ class App extends ConsumerWidget {
     final bool isFluent = effectiveStyle == UIStyle.fluent;
     final seedColor = settings.seedColor;
 
+    const localizationsDelegates = [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ];
+
+    const supportedLocales = [
+      Locale('en'),
+      Locale('zh'),
+    ];
+
+    Locale localeResolution(Locale? locale, Iterable<Locale> supported) {
+      if (locale != null) {
+        for (final supportedLocale in supported) {
+          if (supportedLocale.languageCode == locale.languageCode) {
+            return supportedLocale;
+          }
+        }
+      }
+      return const Locale('en');
+    }
+
     if (isFluent) {
       final fluentAccentColor = _toFluentAccentColor(seedColor);
-      return fluent.FluentApp(
+      return fluent.FluentApp.router(
         title: 'rftranslator',
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('en'),
-          Locale('zh'),
-        ],
+        localizationsDelegates: localizationsDelegates,
+        supportedLocales: supportedLocales,
         locale: settingsNotifier.effectiveLocale,
+        localeResolutionCallback: localeResolution,
         theme: fluent.FluentThemeData(
           accentColor: fluentAccentColor,
         ),
@@ -61,24 +77,23 @@ class App extends ConsumerWidget {
           ThemeMode.light => fluent.ThemeMode.light,
           ThemeMode.dark => fluent.ThemeMode.dark,
         },
-        home: const InitScreen(),
+        routerConfig: appRouter,
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return ScaffoldMessenger(
+            key: scaffoldMessengerKey,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
       );
     }
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'rftranslator',
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('en'),
-        Locale('zh'),
-      ],
+      localizationsDelegates: localizationsDelegates,
+      supportedLocales: supportedLocales,
       locale: settingsNotifier.effectiveLocale,
+      localeResolutionCallback: localeResolution,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: seedColor,
@@ -94,8 +109,14 @@ class App extends ConsumerWidget {
         useMaterial3: true,
       ),
       themeMode: settingsNotifier.effectiveThemeMode,
-      home: const InitScreen(),
+      routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return ScaffoldMessenger(
+          key: scaffoldMessengerKey,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

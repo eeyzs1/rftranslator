@@ -1,8 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/router/app_router.dart';
+import 'package:rftranslator/core/utils/app_toast.dart';
 import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
@@ -132,10 +134,10 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
 
   List<Language> _getAvailableSourceLanguages(DictionaryState dictState) {
     final langs = <Language>{};
-    for (final dict in dictState.selectedDictionaries) {
-      final pair = dict.languagePair;
-      if (pair != null) {
-        langs.add(_languagePairToSource(pair));
+    for (final id in dictState.selectedDictionaryIds) {
+      final meta = findDictionaryById(id);
+      if (meta != null && meta.sourceLanguage != null) {
+        langs.add(meta.sourceLanguage!);
       }
     }
     if (langs.isEmpty) {
@@ -146,63 +148,16 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
 
   List<Language> _getAvailableTargetLanguages(DictionaryState dictState, Language sourceLang) {
     final langs = <Language>{};
-    for (final dict in dictState.selectedDictionaries) {
-      final pair = dict.languagePair;
-      if (pair != null) {
-        final pairSource = _languagePairToSource(pair);
-        if (pairSource == sourceLang) {
-          langs.add(_languagePairToTarget(pair));
-        }
+    for (final id in dictState.selectedDictionaryIds) {
+      final meta = findDictionaryById(id);
+      if (meta != null && meta.sourceLanguage == sourceLang && meta.targetLanguage != null) {
+        langs.add(meta.targetLanguage!);
       }
     }
     if (langs.isEmpty) {
       return Language.values.where((l) => l != sourceLang).toList();
     }
     return langs.toList()..sort((a, b) => a.index.compareTo(b.index));
-  }
-
-  Language _languagePairToSource(LanguagePair pair) {
-    return switch (pair) {
-      LanguagePair.englishChinese => Language.english,
-      LanguagePair.englishFrench => Language.english,
-      LanguagePair.englishGerman => Language.english,
-      LanguagePair.englishSpanish => Language.english,
-      LanguagePair.englishItalian => Language.english,
-      LanguagePair.englishPortuguese => Language.english,
-      LanguagePair.englishRussian => Language.english,
-      LanguagePair.englishArabic => Language.english,
-      LanguagePair.englishJapanese => Language.english,
-      LanguagePair.englishKorean => Language.english,
-      LanguagePair.chineseEnglish => Language.chinese,
-      LanguagePair.frenchEnglish => Language.french,
-      LanguagePair.germanEnglish => Language.german,
-      LanguagePair.spanishEnglish => Language.spanish,
-      LanguagePair.italianEnglish => Language.italian,
-      LanguagePair.portugueseEnglish => Language.portuguese,
-      LanguagePair.russianEnglish => Language.russian,
-    };
-  }
-
-  Language _languagePairToTarget(LanguagePair pair) {
-    return switch (pair) {
-      LanguagePair.englishChinese => Language.chinese,
-      LanguagePair.englishFrench => Language.french,
-      LanguagePair.englishGerman => Language.german,
-      LanguagePair.englishSpanish => Language.spanish,
-      LanguagePair.englishItalian => Language.italian,
-      LanguagePair.englishPortuguese => Language.portuguese,
-      LanguagePair.englishRussian => Language.russian,
-      LanguagePair.englishArabic => Language.arabic,
-      LanguagePair.englishJapanese => Language.japanese,
-      LanguagePair.englishKorean => Language.korean,
-      LanguagePair.chineseEnglish => Language.english,
-      LanguagePair.frenchEnglish => Language.english,
-      LanguagePair.germanEnglish => Language.english,
-      LanguagePair.spanishEnglish => Language.english,
-      LanguagePair.italianEnglish => Language.english,
-      LanguagePair.portugueseEnglish => Language.english,
-      LanguagePair.russianEnglish => Language.english,
-    };
   }
 
   Widget _buildLanguageDropdown({
@@ -255,15 +210,27 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
                   l10n.sourceText,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (state.sourceText.isNotEmpty)
-                  IconButton(
-                    onPressed: () {
-                      _sourceTextController.clear();
-                      notifier.clear();
-                    },
-                    icon: const Icon(Icons.close),
-                    tooltip: l10n.clearText,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (state.targetText.isNotEmpty && !state.isTranslating)
+                      _FavoriteButton(
+                        sourceText: state.sourceText,
+                        targetText: state.targetText,
+                        sourceLang: state.sourceLang,
+                        targetLang: state.targetLang,
+                      ),
+                    if (state.sourceText.isNotEmpty)
+                      IconButton(
+                        onPressed: () {
+                          _sourceTextController.clear();
+                          notifier.clear();
+                        },
+                        icon: const Icon(Icons.close),
+                        tooltip: l10n.clearText,
+                      ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -371,7 +338,14 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     final children = <Widget>[];
 
     if (state.hasDictionaryResult) {
-      children.add(_buildDictionaryResult(l10n, state));
+      if (state.dictionaryResults != null && state.dictionaryResults!.length > 1) {
+        for (final dictResult in state.dictionaryResults!) {
+          children.add(_buildSingleDictionaryCard(l10n, state, dictResult));
+          children.add(const SizedBox(height: 12));
+        }
+      } else {
+        children.add(_buildDictionaryResult(l10n, state));
+      }
     } else if (state.targetText.isNotEmpty) {
       children.add(_buildSimpleResult(l10n, state));
     }
@@ -402,18 +376,10 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
         IconButton(
           onPressed: () {
             Clipboard.setData(ClipboardData(text: state.targetText));
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.copiedToClipboard)),
-            );
+            AppToast.show(context, l10n.copiedToClipboard);
           },
           icon: const Icon(Icons.copy),
           tooltip: l10n.copy,
-        ),
-        _FavoriteButton(
-          sourceText: state.sourceText,
-          targetText: state.targetText,
-          sourceLang: state.sourceLang,
-          targetLang: state.targetLang,
         ),
       ],
     );
@@ -439,6 +405,129 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
               color: Theme.of(context).colorScheme.onSecondaryContainer,
             ),
       ),
+    );
+  }
+
+  Widget _buildSingleDictionaryCard(AppLocalizations l10n, TranslationState state, DictionaryTranslationResult dictResult) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        dictResult.dictionaryName,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                    if (dictResult.phonetic != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '/${dictResult.phonetic}/',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'Courier',
+                            color: Color(0xFFE8002D),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                _buildSingleDictActions(l10n, state, dictResult),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SelectableText(
+                dictResult.targetText,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (dictResult.definitions != null && dictResult.definitions!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ...dictResult.definitions!.asMap().entries.map((entry) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${entry.key + 1}. ',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      Expanded(
+                        child: SelectableText(
+                          entry.value,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSingleDictActions(AppLocalizations l10n, TranslationState state, DictionaryTranslationResult dictResult) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (state.isWordOrPhrase && state.sourceLang == Language.english)
+          IconButton(
+            onPressed: () {
+              context.push('/dictionary/word/${Uri.encodeComponent(state.sourceText)}');
+            },
+            icon: const Icon(Icons.book_outlined, size: 18),
+            tooltip: l10n.lookupDictionary,
+          ),
+        IconButton(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: dictResult.targetText));
+            AppToast.show(context, l10n.copiedToClipboard);
+          },
+          icon: const Icon(Icons.copy, size: 18),
+          tooltip: l10n.copy,
+        ),
+      ],
     );
   }
 
@@ -715,9 +804,7 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
                     IconButton(
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: state.llmTranslation!));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.copiedToClipboard)),
-                        );
+                        AppToast.show(context, l10n.copiedToClipboard);
                       },
                       icon: const Icon(Icons.copy, size: 18),
                       tooltip: l10n.copy,
@@ -832,10 +919,9 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
       setState(() {
         _isFavorite = !_isFavorite;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isFavorite ? l10n.addToFavorites : l10n.removeFromFavorites),
-        ),
+      AppToast.show(
+        context,
+        _isFavorite ? l10n.addToFavorites : l10n.removeFromFavorites,
       );
     }
   }

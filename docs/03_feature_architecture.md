@@ -22,10 +22,16 @@
 ┌─────────────────────────────────────────────────┐
 │       数据/能力层                                │
 │  ├── SQLite：本地历史记录和自定义词典          │
-│  ├── sds：StarDict 格式词典解析                │
-│  └── Python 后端：MarianNMT/OPUS-MT 翻译      │
+│  ├── StarDictNative：纯 Dart StarDict 解析     │
+│  ├── MDict：mdict_reader 插件解析              │
+│  └── llamadart：本地 LLM 推理 (GGUF 模型)     │
 └─────────────────────────────────────────────────┘
 ```
+
+> **架构变更记录 (2026-04-15)**：
+> - 词典层：Python pystardict → 纯 Dart `StarDictNativeDataSource`
+> - LLM 层：Python 后端 → `llamadart` 插件 (基于 llama.cpp)
+> - 移除了 Python 进程依赖，实现完全 Flutter 原生化
 
 ---
 
@@ -92,16 +98,45 @@
 - **支持删除**：已下载的模型可以删除
 - **首次使用引导**：无模型时提示下载
 
-### 2.5 Python 后端集成
-使用 MarianNMT Python 绑定或命令行工具加载 OPUS-MT 模型进行推理，通过 MethodChannel 与 Flutter 通信。
+### 2.5 Flutter 原生集成（已实现）
+
+> **变更记录 (2026-04-15)**：已从 Python 后端迁移到 Flutter 原生方案。
+
+#### 2.5.1 StarDict 词典 — 纯 Dart 实现
+
+`StarDictNativeDataSource` 直接解析 StarDict 格式文件，无需 Python：
+- 解析 `.ifo` 文件获取词典元信息
+- 加载 `.idx`/`.idx.gz` 索引到内存（支持 gzip 压缩）
+- 二分搜索快速查词
+- 读取 `.dict`/`.dict.dz` 释义数据（支持 gzip 压缩）
+- HTML 标签清理、音标提取、中文释义提取
+
+#### 2.5.2 LLM 翻译 — llamadart 插件
+
+`LlamaCppDataSource` 通过 `llamadart` 插件调用 llama.cpp：
+- 支持 GGUF 格式量化模型
+- 流式输出（`Stream<String>`）
+- GPU 加速（Windows: Vulkan, macOS: Metal）
+- 零配置 — 自动下载原生运行时
+
+#### 2.5.3 插件选型决策
+
+| 插件 | 平台支持 | 离线 | Windows | 选/不选原因 |
+|------|----------|------|---------|------------|
+| **llamadart** ✅ | 全平台 | ✅ | ✅ Vulkan | 零配置、全平台、GPU加速、活跃维护 |
+| google_mlkit_translation | iOS/Android | ✅ | ❌ | 不支持 Windows |
+| flutter_llama | iOS/Android/macOS | ✅ | ❌ | 不支持 Windows |
+| argos_translate_dart | 全平台 | ⚠️ | ✅ | 仍依赖 Python 运行时 |
 
 ---
 
 ## 3. 词典管理模块
 
 ### 3.1 StarDict 支持
-- **直接读取**：不做解压、转换，保持原始结构
-- **多格式支持**：.idx, .dict, .dict.dz, .ifo
+- **纯 Dart 解析**：`StarDictNativeDataSource` 直接读取 StarDict 文件，无需 Python
+- **多格式支持**：.ifo, .idx, .idx.gz, .dict, .dict.dz
+- **二分搜索**：索引加载到内存后使用二分查找，340万词条查词 < 1ms
+- **语言对持久化**：翻译后自动保存语对到 SharedPreferences，启动时预加载对应词典
 
 ### 3.2 内置词典
 - **Wiktionary (EN-ZH)**：作为默认内置词典

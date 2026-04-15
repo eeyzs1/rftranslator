@@ -1,12 +1,12 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rftranslator/features/llm/domain/model_manager.dart';
-import 'package:rftranslator/features/llm/domain/llm_service.dart';
-import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/router/app_router.dart';
+import 'package:rftranslator/core/utils/app_toast.dart';
 
 class ModelDownloadScreen extends ConsumerStatefulWidget {
   const ModelDownloadScreen({super.key});
@@ -34,15 +34,9 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     });
 
     try {
-      final llmService = ref.read(llmServiceProvider.notifier);
-      final dataSource = llmService.dataSource;
-
-      if (dataSource is PythonLlmDataSource) {
-        final sources = await dataSource.checkDownloadSources();
-        setState(() {
-          _sourceAvailability = sources;
-        });
-      }
+      setState(() {
+        _sourceAvailability = {};
+      });
     } catch (e) {
       debugPrint('Error checking sources: $e');
     } finally {
@@ -81,57 +75,14 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       }
       await saveDir.create(recursive: true);
 
-      final llmService = ref.read(llmServiceProvider.notifier);
-      final dataSource = llmService.dataSource;
-
-      if (dataSource is PythonLlmDataSource) {
-        String? source;
-        bool autoDetect = true;
-
-        if (_selectedSource != 'auto') {
-          source = _selectedSource;
-          autoDetect = false;
-        }
-
-        final result = await dataSource.downloadModel(
-          modelType: modelState.type.name,
-          savePath: savePath,
-          source: source,
-          autoDetect: autoDetect,
-        );
-
-        if (result['success'] == true) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('\u4E0B\u8F7D\u6210\u529F\uFF01\u4F7F\u7528\u6E90: ${result['source']}'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('\u4E0B\u8F7D\u5931\u8D25: ${result['error']}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
+      await modelManager.startDownload();
 
       if (mounted) {
         setState(() {});
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('\u4E0B\u8F7D\u51FA\u9519: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppToast.show(context, '\u4E0B\u8F7D\u51FA\u9519: $e');
       }
     } finally {
       setState(() {

@@ -1,5 +1,7 @@
-﻿import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
 import 'package:rftranslator/features/translation/domain/entities/translation_result.dart';
 
 class TranslationHistoryRepository {
@@ -15,16 +17,32 @@ class TranslationHistoryRepository {
 
   Future<void> addHistory(TranslationResult result) async {
     final historyBox = await box;
-    
-    final history = TranslationHistory.create(
-      sourceText: result.sourceText,
-      targetText: result.targetText,
-      sourceLang: result.sourceLang,
-      targetLang: result.targetLang,
-      translatedAt: result.translatedAt,
-    );
-    
-    await historyBox.add(history);
+
+    final existingIndex = historyBox.values.toList().indexWhere((h) =>
+        h.sourceText == result.sourceText &&
+        h.sourceLang == result.sourceLang &&
+        h.targetLang == result.targetLang);
+
+    if (existingIndex >= 0) {
+      final existing = historyBox.getAt(existingIndex);
+      if (existing != null) {
+        existing.targetText = result.targetText;
+        existing.translatedAt = result.translatedAt;
+        await existing.save();
+        debugPrint('[HistoryRepo] Updated existing entry: "${result.sourceText}" (${result.sourceLang.code}->${result.targetLang.code})');
+      }
+    } else {
+      final history = TranslationHistory.create(
+        sourceText: result.sourceText,
+        targetText: result.targetText,
+        sourceLang: result.sourceLang,
+        targetLang: result.targetLang,
+        translatedAt: result.translatedAt,
+      );
+
+      await historyBox.add(history);
+      debugPrint('[HistoryRepo] Added new entry: "${result.sourceText}" (${result.sourceLang.code}->${result.targetLang.code})');
+    }
   }
 
   Future<List<TranslationHistory>> getAllHistory() async {

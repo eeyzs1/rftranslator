@@ -1,6 +1,6 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
+import 'package:rftranslator/features/llm/data/datasources/llama_cpp_datasource.dart';
 
 part 'llm_service.g.dart';
 
@@ -35,7 +35,7 @@ abstract class LlmDataSource {
 }
 
 final llmDataSourceProvider = Provider<LlmDataSource>((ref) {
-  return PythonLlmDataSource();
+  return LlamaCppDataSource();
 });
 
 @riverpod
@@ -52,7 +52,7 @@ class LlmService extends _$LlmService {
     _isReady = false;
     _modelPath = modelPath;
     try {
-      _datasource = dataSource ?? PythonLlmDataSource();
+      _datasource = dataSource ?? LlamaCppDataSource();
       await _datasource!.loadModel(modelPath);
       _isReady = true;
       state = LlmStatus.ready;

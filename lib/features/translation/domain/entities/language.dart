@@ -46,4 +46,6 @@ extension LanguageExtension on Language {
   }
 
   String get nativeName => displayName;
+
+  String get isoCode => code;
 }

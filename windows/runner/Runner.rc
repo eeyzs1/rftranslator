@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.youdao" "\0"
-            VALUE "FileDescription", "youdao_dict" "\0"
+            VALUE "CompanyName", "com.rftranslator" "\0"
+            VALUE "FileDescription", "rftranslator" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "youdao_dict" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.youdao. All rights reserved." "\0"
-            VALUE "OriginalFilename", "youdao_dict.exe" "\0"
-            VALUE "ProductName", "youdao_dict" "\0"
+            VALUE "InternalName", "rftranslator" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.rftranslator. All rights reserved." "\0"
+            VALUE "OriginalFilename", "rftranslator.exe" "\0"
+            VALUE "ProductName", "rftranslator" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

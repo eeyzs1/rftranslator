@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
@@ -37,6 +37,13 @@ class _InitScreenState extends ConsumerState<InitScreen> {
       });
       
       await ref.read(dictionaryManagerProvider.notifier).loadSavedDictionary();
+
+      setState(() {
+        _statusKey = 'loadingDictionary';
+        _progress = 0.8;
+      });
+
+      await ref.read(dictionaryManagerProvider.notifier).preloadRecentDictionaries();
       
       setState(() {
         _statusKey = 'initComplete';
@@ -64,6 +71,7 @@ class _InitScreenState extends ConsumerState<InitScreen> {
     return switch (_statusKey) {
       'loadingModelManager' => l10n.loadingModelManager,
       'loadingDictionaryManager' => l10n.loadingDictionaryManager,
+      'loadingDictionary' => l10n.loadingDictionary,
       'initComplete' => l10n.initComplete,
       'initFailed' => l10n.initFailed,
       _ => l10n.initializing,

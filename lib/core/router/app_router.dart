@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
@@ -9,11 +9,13 @@ import 'package:rftranslator/features/dictionary/presentation/screens/word_detai
 import 'package:rftranslator/features/favorites/presentation/screens/favorites_screen.dart';
 import 'package:rftranslator/features/history/presentation/screens/history_screen.dart';
 import 'package:rftranslator/features/llm/presentation/screens/model_download_screen.dart';
+import 'package:rftranslator/features/main/presentation/screens/init_screen.dart';
 import 'package:rftranslator/features/settings/presentation/screens/settings_screen.dart';
 import 'package:rftranslator/features/translation/presentation/screens/translation_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
+final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 typedef NavDest = ({IconData icon, IconData selectedIcon, String labelKey, String route});
 
@@ -39,8 +41,12 @@ String _getLabel(BuildContext context, String labelKey) {
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/',
+  initialLocation: '/init',
   routes: [
+    GoRoute(
+      path: '/init',
+      builder: (context, state) => const InitScreen(),
+    ),
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {

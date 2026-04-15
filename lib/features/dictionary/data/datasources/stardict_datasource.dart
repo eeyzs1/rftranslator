@@ -1,33 +1,36 @@
-﻿import 'package:rftranslator/features/dictionary/domain/dictionary_repository.dart';
+import 'package:flutter/foundation.dart';
+import 'package:rftranslator/features/dictionary/data/datasources/stardict_native_datasource.dart';
+import 'package:rftranslator/features/dictionary/domain/dictionary_repository.dart';
 import 'package:rftranslator/features/dictionary/domain/entities/word_entry.dart';
-import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
 
 class StarDictDataSource implements DictionaryRepository {
-  final PythonLlmDataSource? _pythonDataSource;
-  String? _dictPath;
+  final StarDictNativeDataSource _nativeDataSource;
   bool _isDictionaryLoaded = false;
+  bool _isLoading = false;
+  String? _lastPath;
 
-  StarDictDataSource({PythonLlmDataSource? pythonDataSource})
-      : _pythonDataSource = pythonDataSource;
+  StarDictDataSource({required StarDictNativeDataSource nativeDataSource})
+      : _nativeDataSource = nativeDataSource;
+
+  bool get isDictionaryLoaded => _isDictionaryLoaded;
+  bool get isLoading => _isLoading;
 
   @override
   Future<void> setPath(String? path) async {
-    _dictPath = path;
-    _isDictionaryLoaded = false;
-  }
-
-  Future<String?> extractDictionary(String archivePath, String outputDir) async {
-    if (_pythonDataSource == null) {
-      return null;
+    if (path == _lastPath && _isDictionaryLoaded) {
+      debugPrint('[StarDict] setPath: $path (already loaded, skipping)');
+      return;
     }
-    return await _pythonDataSource.extractDictionary(archivePath, outputDir);
+    debugPrint('[StarDict] setPath: $path (wasLoaded: $_isDictionaryLoaded)');
+    await _nativeDataSource.setPath(path);
+    _isDictionaryLoaded = false;
+    _lastPath = path;
   }
 
   Future<bool> loadDictionary() async {
-    if (_pythonDataSource == null || _dictPath == null) {
-      return false;
-    }
-    final success = await _pythonDataSource.loadDictionary(_dictPath!);
+    _isLoading = true;
+    final success = await _nativeDataSource.loadDictionary();
+    _isLoading = false;
     if (success) {
       _isDictionaryLoaded = true;
     }
@@ -36,73 +39,21 @@ class StarDictDataSource implements DictionaryRepository {
 
   @override
   Future<WordEntry?> getWord(String word) async {
-    if (_pythonDataSource == null || _dictPath == null) {
-      return null;
-    }
-
     if (!_isDictionaryLoaded) {
+      debugPrint('[StarDict] getWord: "$word", loading dictionary...');
       final loaded = await loadDictionary();
-      if (!loaded) {
-        return null;
-      }
+      debugPrint('[StarDict]   loadDictionary result: $loaded');
+      if (!loaded) return null;
     }
 
-    final result = await _pythonDataSource.lookupWord(_dictPath!, word);
-    if (result == null || result['found'] != true) {
+    try {
+      final result = await _nativeDataSource.getWord(word);
+      debugPrint('[StarDict]   result: ${result != null ? "found ${result.definitions.length} definitions" : "not found"}');
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('[StarDict]   EXCEPTION: $e');
+      debugPrint('[StarDict]   StackTrace: $stackTrace');
       return null;
     }
-
-    return _parseStarDictResult(result);
-  }
-
-  WordEntry _parseStarDictResult(Map<String, dynamic> result) {
-    final word = result['word'] as String;
-    final definition = result['definition'] as String;
-
-    final definitions = <Definition>[];
-    final examples = <ExampleSentence>[];
-
-    final lines = definition.split('\n');
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-
-      if (trimmed.startsWith(RegExp(r'^[a-z]+\.'))) {
-        final dotIndex = trimmed.indexOf('.');
-        if (dotIndex != -1) {
-          final partOfSpeech = trimmed.substring(0, dotIndex).trim();
-          final chinese = trimmed.substring(dotIndex + 1).trim();
-          definitions.add(Definition(
-            partOfSpeech: partOfSpeech,
-            chinese: chinese,
-          ),);
-        }
-      } else if (trimmed.startsWith('\u4F8B\uFF1A') || trimmed.startsWith('\u4F8B\u53E5\uFF1A')) {
-        final exampleText = trimmed.substring(trimmed.indexOf('\uFF1A') + 1).trim();
-        examples.add(ExampleSentence(
-          english: exampleText,
-        ),);
-      } else if (definitions.isEmpty) {
-        definitions.add(Definition(
-          partOfSpeech: '',
-          chinese: trimmed,
-        ),);
-      }
-    }
-
-    if (definitions.isEmpty && definition.isNotEmpty) {
-      definitions.add(Definition(
-        partOfSpeech: '',
-        chinese: definition,
-      ),);
-    }
-
-    return WordEntry(
-      word: word,
-      phonetic: null,
-      definitions: definitions,
-      examples: examples,
-      exchanges: {},
-    );
   }
 }

@@ -1,34 +1,77 @@
 # 开发指导 — 核心功能实现
 
+> **变更记录 (2026-04-15)**：
+> - 词典：Python pystardict → 纯 Dart `StarDictNativeDataSource`
+> - LLM：Python 后端 → `llamadart` 插件 (llama.cpp FFI)
+> - 新增依赖：`llamadart: ^0.6.9`、`archive: ^4.0.9`
+> - 移除 Python 进程依赖
+
 ## 1. 项目初始化
 
 ### 1.1 pubspec.yaml
 
 ```yaml
-name: youdao_dict
-description: "有道词典 Flutter 复刻版"
+name: rftranslator
+description: "rftranslator - 跨平台翻译词典应用"
 publish_to: none
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.4.0
+  sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  # 状态管理
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.5
+
+  # 路由
   go_router: ^14.0.0
+
+  # 本地数据库
   sqflite: ^2.3.3+1
   sqflite_common_ffi: ^2.3.3
   hive_flutter: ^1.1.0
+  hive: ^2.2.3
+
+  # TTS
   flutter_tts: ^4.0.2
+
+  # UI 组件
   shimmer: ^3.0.0
+
+  # 工具
   path_provider: ^2.1.3
   path: ^1.9.0
   shared_preferences: ^2.2.3
+
+  # UI
+  fluent_ui: ^4.14.0
+
+  # 窗口管理（Windows）
   window_manager: ^0.3.9
-  dio: ^5.4.0              # 模型下载（断点续传）
+
+  # 网络（模型下载）
+  dio: ^5.4.0
+  crypto: ^3.0.3
+
+  # 文件选择
+  file_picker: ^8.0.0+1
+
+  # 压缩文件处理
+  archive: ^4.0.9
+
+  # 集合工具
+  collection: ^1.18.0
+  mdict_reader: ^1.1.0
+
+  # LLM 本地推理（llamadart - llama.cpp 的 Dart/Flutter 插件）
+  llamadart: ^0.6.9
 
 dev_dependencies:
   flutter_test:
@@ -759,7 +802,7 @@ flutter build appbundle --release
 flutter run -d windows
 flutter build windows --release
 # 输出: build/windows/x64/runner/Release/
-# 需将 llama.dll 复制到输出目录（llama_cpp_dart 提供）
+# llamadart 原生运行时会自动打包
 ```
 
 ### 注意事项
@@ -775,7 +818,9 @@ flutter build windows --release
 
 3. Windows 需要 Visual Studio 2022 + C++ 工作负载
 
-4. Windows 发布时需将 `llama.dll` 复制到 Release 目录
+4. **llamadart 首次构建**会自动下载原生运行时（约 50-100MB），需要网络连接
+
+5. **GGUF 模型**需用户手动下载到应用模型目录，或通过应用内下载功能获取
 
 ### 1.1 pubspec.yaml
 

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -139,6 +139,11 @@ class AppLocalizations {
       'loadingDictionaryManager': 'Loading dictionary manager...',
       'initComplete': 'Initialization complete!',
       'initFailed': 'Initialization failed',
+      'loadingDictionary': 'Loading dictionary, please wait...',
+      'firstTimeGuideTitle': 'Welcome to rftranslator!',
+      'firstTimeGuideMessage': 'To get started with translation, please go to Settings to download dictionaries or AI models first.',
+      'goToSettings': 'Go to Settings',
+      'noDictionaryOrModel': 'No dictionary or AI model available. Please download them in Settings.',
     },
     'zh': {
       'appTitle': 'rftranslator',
@@ -254,6 +259,11 @@ class AppLocalizations {
       'loadingDictionaryManager': '\u6B63\u5728\u52A0\u8F7D\u8BCD\u5178\u7BA1\u7406\u5668...',
       'initComplete': '\u521D\u59CB\u5316\u5B8C\u6210\uFF01',
       'initFailed': '\u521D\u59CB\u5316\u5931\u8D25',
+      'loadingDictionary': '\u6B63\u5728\u52A0\u8F7D\u8BCD\u5178\uFF0C\u8BF7\u7A0D\u5019...',
+      'firstTimeGuideTitle': '\u6B22\u8FCE\u4F7F\u7528 rftranslator\uFF01',
+      'firstTimeGuideMessage': '\u4E3A\u4E86\u5F00\u59CB\u4F7F\u7528\u7FFB\u8BD1\u529F\u80FD\uFF0C\u8BF7\u5143\u524D\u5F00\u53BB\u8BBE\u7F6E\u9875\u4E0B\u8F7D\u8BCD\u5178\u6216 AI \u6A21\u578B\u3002',
+      'goToSettings': '\u524D\u5F80\u8BBE\u7F6E',
+      'noDictionaryOrModel': '\u6682\u65E0\u53EF\u7528\u7684\u8BCD\u5178\u6216 AI \u6A21\u578B\uFF0C\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u4E0B\u8F7D\u3002',
     },
   };
 
@@ -373,6 +383,11 @@ class AppLocalizations {
   String get loadingDictionaryManager => _t('loadingDictionaryManager');
   String get initComplete => _t('initComplete');
   String get initFailed => _t('initFailed');
+  String get loadingDictionary => _t('loadingDictionary');
+  String get firstTimeGuideTitle => _t('firstTimeGuideTitle');
+  String get firstTimeGuideMessage => _t('firstTimeGuideMessage');
+  String get goToSettings => _t('goToSettings');
+  String get noDictionaryOrModel => _t('noDictionaryOrModel');
 }
 
 class _AppLocalizationsDelegate

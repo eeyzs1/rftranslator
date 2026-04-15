@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
 import 'package:rftranslator/features/translation/data/repositories/translation_history_repository.dart';

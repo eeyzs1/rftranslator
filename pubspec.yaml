@@ -51,12 +51,14 @@ dependencies:
   file_picker: ^8.0.0+1
   
   # 压缩文件处理
-  archive: ^3.6.1
+  archive: ^4.0.9
 
   # 集合工具
   collection: ^1.18.0
+  mdict_reader: ^1.1.0
 
-  # LLM 本地推理（使用命令行 llama.cpp）
+  # LLM 本地推理（llamadart - llama.cpp 的 Dart/Flutter 插件）
+  llamadart: ^0.6.9
 
 dev_dependencies:
   flutter_test:

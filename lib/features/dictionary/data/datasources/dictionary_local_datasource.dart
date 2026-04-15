@@ -1,4 +1,5 @@
-﻿import 'dart:io';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -30,6 +31,7 @@ class DictionaryLocalDataSource implements DictionaryRepository {
 
   @override
   Future<void> setPath(String? path) async {
+    debugPrint('[SQLite] setPath: $path (previous: $_customDbPath)');
     setCustomPath(path);
   }
 
@@ -90,7 +92,10 @@ class DictionaryLocalDataSource implements DictionaryRepository {
       dbPath = path.join(dir.path, _defaultDbName);
     }
 
+    debugPrint('[SQLite] _openDatabase: dbPath=$dbPath, exists=${File(dbPath).existsSync()}');
+
     if (!File(dbPath).existsSync()) {
+      debugPrint('[SQLite]   DB file does not exist!');
       throw StateError('\u8BCD\u5178\u6570\u636E\u5E93\u6587\u4EF6\u4E0D\u5B58\u5728');
     }
 
@@ -140,14 +145,18 @@ class DictionaryLocalDataSource implements DictionaryRepository {
   Future<WordEntry?> getWord(String word) async {
     try {
       final cleanWord = word.replaceAll(RegExp(r'[^\w\s]'), '').toLowerCase().trim();
+      debugPrint('[SQLite] getWord: input="$word", cleanWord="$cleanWord"');
       if (cleanWord.isEmpty) {
+        debugPrint('[SQLite]   cleanWord is empty, returning null');
         return null;
       }
 
       final database = await db;
       await _ensureSchemaCached(database);
 
+      debugPrint('[SQLite]   schema: tableName=$_cachedTableName, wordColumn=$_cachedWordColumn, transColumn=$_cachedTranslationColumn, customPath=$_customDbPath');
       if (_cachedTableName == null) {
+        debugPrint('[SQLite]   tableName is null, returning null');
         return null;
       }
 
@@ -158,17 +167,21 @@ class DictionaryLocalDataSource implements DictionaryRepository {
         limit: 1,
       );
 
+      debugPrint('[SQLite]   query result count: ${results.length}');
       if (results.isEmpty) return null;
 
       final row = results.first;
+      debugPrint('[SQLite]   row keys: ${row.keys.toList()}');
 
       final definitions = <Definition>[];
       if (row.containsKey(_cachedTranslationColumn!) && row[_cachedTranslationColumn!] != null) {
         final trans = row[_cachedTranslationColumn!] as String;
+        debugPrint('[SQLite]   raw translation (${trans.length} chars): "${trans.substring(0, trans.length > 200 ? 200 : trans.length)}"');
         final parts = trans.split('\n');
         for (final part in parts) {
           if (part.trim().isNotEmpty) {
             final cleaned = _cleanDefinition(part.trim());
+            debugPrint('[SQLite]     part="${part.trim().substring(0, part.trim().length > 80 ? 80 : part.trim().length)}" -> cleaned="$cleaned"');
             if (cleaned.isNotEmpty) {
               definitions.add(Definition(
                 partOfSpeech: '',
@@ -177,13 +190,17 @@ class DictionaryLocalDataSource implements DictionaryRepository {
             }
           }
         }
+      } else {
+        debugPrint('[SQLite]   no translation column found or value is null, key=$_cachedTranslationColumn');
       }
 
       if (definitions.isEmpty) {
+        debugPrint('[SQLite]   definitions empty after first pass, trying fallback');
         for (final entry in row.entries) {
           if (entry.value is String && (entry.value as String).isNotEmpty) {
             final cleaned = _cleanDefinition(entry.value as String);
             if (cleaned.isNotEmpty) {
+              debugPrint('[SQLite]   fallback found in column "${entry.key}": "$cleaned"');
               definitions.add(Definition(
                 partOfSpeech: '',
                 chinese: cleaned,
@@ -201,6 +218,7 @@ class DictionaryLocalDataSource implements DictionaryRepository {
         ),);
       }
 
+      debugPrint('[SQLite]   final definitions count: ${definitions.length}');
       return WordEntry(
         word: row[_cachedWordColumn!] as String? ?? word,
         phonetic: null,
@@ -208,7 +226,9 @@ class DictionaryLocalDataSource implements DictionaryRepository {
         examples: [],
         exchanges: {},
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('[SQLite]   EXCEPTION: $e');
+      debugPrint('[SQLite]   StackTrace: $stackTrace');
       return null;
     }
   }

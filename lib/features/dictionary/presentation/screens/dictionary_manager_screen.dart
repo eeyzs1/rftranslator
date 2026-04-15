@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
+import 'package:rftranslator/core/router/app_router.dart';
+import 'package:rftranslator/core/utils/app_toast.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
 
 class DictionaryManagerScreen extends ConsumerStatefulWidget {
   const DictionaryManagerScreen({super.key});
@@ -51,6 +54,40 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     manager.resetDownload();
   }
 
+  Future<void> _importMDict(BuildContext context) async {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mdx'],
+      dialogTitle: localeCode == 'zh' ? '选择 MDict 词典文件' : 'Select MDict Dictionary File',
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    final filePath = result.files.first.path;
+    if (filePath == null) return;
+
+    final manager = ref.read(dictionaryManagerProvider.notifier);
+    final meta = await manager.importMDictFile(filePath);
+
+    if (!mounted) return;
+
+    if (meta != null) {
+      AppToast.show(
+        context,
+        localeCode == 'zh'
+            ? '成功导入: ${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})'
+            : 'Imported: ${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})',
+      );
+      setState(() {});
+    } else {
+      AppToast.show(
+        context,
+        localeCode == 'zh' ? '导入失败，请确保是有效的 .mdx 文件' : 'Import failed. Please ensure it is a valid .mdx file.',
+      );
+    }
+  }
+
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -58,38 +95,41 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
-  Set<LanguagePair> _getAvailableLanguagePairs(Set<DictionaryType> selectedDictionaries) {
-    final pairs = <LanguagePair>{};
-    for (final dict in selectedDictionaries) {
-      final pair = dict.languagePair;
-      if (pair != null) {
-        pairs.add(pair);
+  Future<Map<String, bool>> _getDownloadedDictionaries() async {
+    final downloaded = <String, bool>{};
+    for (final meta in dictionaryCatalog) {
+      final downloadedPath = getDownloadedPath(meta.id);
+      if (downloadedPath != null) {
+        downloaded[meta.id] = File(downloadedPath).existsSync() || Directory(downloadedPath).existsSync();
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        final defaultPath = path.join(dir.path, meta.localDirName);
+        downloaded[meta.id] = File(defaultPath).existsSync() || Directory(defaultPath).existsSync();
       }
     }
-    return pairs;
-  }
-
-  Future<Map<DictionaryType, bool>> _getDownloadedDictionaries(DictionaryManager manager) async {
-    final downloaded = <DictionaryType, bool>{};
-    for (final type in DictionaryType.values) {
-      final path = await _getDictionaryPathForType(type);
-      downloaded[type] = path != null && File(path).existsSync();
+    for (final meta in allMDictDictionaries) {
+      downloaded[meta.id] = File(meta.localDirName).existsSync();
     }
     return downloaded;
   }
 
-  Future<String?> _getDictionaryPathForType(DictionaryType type) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final defaultPath = path.join(dir.path, type.fileName);
-    if (File(defaultPath).existsSync()) {
-      return defaultPath;
+  Map<String, List<DictionaryMeta>> _groupDictionariesByTargetLang() {
+    final groups = <String, List<DictionaryMeta>>{};
+    for (final meta in dictionaryCatalog) {
+      final targetLang = meta.targetLang;
+      groups.putIfAbsent(targetLang, () => []).add(meta);
     }
-    return null;
+    for (final meta in allMDictDictionaries) {
+      final targetLang = meta.targetLang;
+      groups.putIfAbsent(targetLang, () => []).add(meta);
+    }
+    return groups;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final localeCode = Localizations.localeOf(context).languageCode;
     final dictState = ref.watch(dictionaryManagerProvider);
     final manager = ref.read(dictionaryManagerProvider.notifier);
 
@@ -97,15 +137,18 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
       appBar: AppBar(
         title: Text(l10n.dictionaryManagement),
       ),
-      body: FutureBuilder<Map<DictionaryType, bool>>(
-        future: _getDownloadedDictionaries(manager),
+      body: FutureBuilder<Map<String, bool>>(
+        future: _getDownloadedDictionaries(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final downloadedDicts = snapshot.data!;
-          final downloadedDictTypes = DictionaryType.values.where((type) => downloadedDicts[type] ?? false).toList();
+          final downloadedIds = <String>[
+            ...dictionaryCatalog.where((m) => downloadedDicts[m.id] ?? false).map((m) => m.id),
+            ...allMDictDictionaries.where((m) => downloadedDicts[m.id] ?? false).map((m) => m.id),
+          ];
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -121,56 +164,74 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 16),
-                      ...DictionaryType.values.map((type) {
-                        final isDownloaded = downloadedDicts[type] ?? false;
-                        return RadioGroup<DictionaryType>(
-                          groupValue: dictState.type,
-                          onChanged: dictState.downloadStatus == DownloadStatus.downloading
-                              ? (_) {}
-                              : (value) {
-                                  if (value != null) {
-                                    manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
-                                  }
-                                },
-                          child: RadioListTile<DictionaryType>(
-                            title: Text(type.displayName),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(type.description),
-                                const SizedBox(height: 4),
-                                Row(
+                      ..._groupDictionariesByTargetLang().entries.map((entry) {
+                        final targetLang = entry.key;
+                        final dicts = entry.value;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                '${langDisplayName(targetLang, localeCode)} ${localeCode == 'zh' ? '释义' : 'Definitions'}',
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            ...dicts.map((meta) {
+                              final isDownloaded = downloadedDicts[meta.id] ?? false;
+                              return RadioListTile<String>(
+                                title: Text(meta.displayName(localeCode)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      '${l10n.fileSize}: ${type.sizeInfo}',
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    if (isDownloaded)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          l10n.installed,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
+                                    Text(meta.description(localeCode)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          '${l10n.fileSize}: ${meta.sizeInfo(localeCode)}',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.secondary,
+                                            fontSize: 12,
                                           ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 8),
+                                        if (isDownloaded)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              l10n.installed,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
-                            ),
-                            value: type,
-                          ),
+                                value: meta.id,
+                                groupValue: dictState.selectedId,
+                                onChanged: dictState.downloadStatus == DownloadStatus.downloading
+                                    ? null
+                                    : (value) {
+                                        if (value != null) {
+                                          manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
+                                        }
+                                      },
+                              );
+                            }),
+                            const Divider(),
+                          ],
                         );
                       }),
                     ],
@@ -348,14 +409,14 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
-                            onPressed: dictState.type.downloadUrl == null || (downloadedDicts[dictState.type] ?? false)
+                            onPressed: dictState.meta?.downloadUrl == null || (downloadedDicts[dictState.selectedId] ?? false)
                                 ? null
                                 : _startDownload,
                             icon: const Icon(Icons.download),
                             label: Text(l10n.startDownload),
                           ),
                         ),
-                        if (dictState.type.downloadUrl == null)
+                        if (dictState.meta?.downloadUrl == null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -365,7 +426,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                               ),
                             ),
                           ),
-                        if (downloadedDicts[dictState.type] ?? false)
+                        if (downloadedDicts[dictState.selectedId] ?? false)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
@@ -390,18 +451,18 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Select Installed Dictionaries / \u9009\u62E9\u5DF2\u5B89\u88C5\u7684\u8BCD\u5178',
+                        localeCode == 'zh' ? '选择已安装的词典' : 'Select Installed Dictionaries',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '\u9009\u62E9\u8981\u4F7F\u7528\u7684\u8BCD\u5178\uFF08\u53EF\u591A\u9009\uFF09',
+                        localeCode == 'zh' ? '选择要使用的词典（可多选）' : 'Select dictionaries to use (multiple)',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      if (downloadedDictTypes.isEmpty)
+                      if (downloadedIds.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
@@ -412,51 +473,92 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                           ),
                         )
                       else
-                        ...downloadedDictTypes.map((type) {
-                          final isSelected = dictState.selectedDictionaries.contains(type);
+                        ...downloadedIds.map((id) {
+                          final meta = findDictionaryById(id) ?? findMDictById(id);
+                          if (meta == null) return const SizedBox.shrink();
+                          final isSelected = dictState.selectedDictionaryIds.contains(id);
                           return CheckboxListTile(
-                            title: Text(type.displayName),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            title: Row(
                               children: [
-                                Text(type.description),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${l10n.fileSize}: ${type.sizeInfo}',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.secondary,
-                                    fontSize: 12,
+                                Expanded(child: Text(meta.displayName(localeCode))),
+                                if (meta.isMDict)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                                    onPressed: () async {
+                                      await manager.removeMDict(id);
+                                      if (mounted) {
+                                        setState(() {});
+                                      }
+                                    },
+                                    tooltip: localeCode == 'zh' ? '删除' : 'Delete',
                                   ),
-                                ),
                               ],
                             ),
+                            subtitle: Text(meta.isMDict
+                                ? (localeCode == 'zh' ? 'MDict 格式（用户导入）' : 'MDict format (imported)')
+                                : meta.description(localeCode),),
                             value: isSelected,
                             onChanged: dictState.downloadStatus == DownloadStatus.downloading
                                 ? null
                                 : (value) async {
-                                    await manager.toggleDictionarySelection(type);
+                                    await manager.toggleDictionarySelection(id);
                                   },
                           );
                         }),
                       const SizedBox(height: 16),
                       const Divider(),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
-                        'Available Language Pairs / \u53EF\u7528\u7684\u8BED\u8A00\u5BF9',
+                        localeCode == 'zh' ? '导入 MDict 词典 (.mdx)' : 'Import MDict Dictionary (.mdx)',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        localeCode == 'zh'
+                            ? '支持 .mdx 格式，导入后自动识别语言对'
+                            : 'Supports .mdx format, language pairs auto-detected',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _importMDict(context),
+                          icon: const Icon(Icons.upload_file, size: 18),
+                          label: Text(localeCode == 'zh' ? '选择 .mdx 文件' : 'Select .mdx File'),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(
+                        localeCode == 'zh' ? '可用的语言对' : 'Available Language Pairs',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
-                      ..._getAvailableLanguagePairs(dictState.selectedDictionaries).map((pair) {
+                      ...manager.getAvailableLanguagePairs().map((pair) {
+                        final srcLang = pair.$1;
+                        final tgtLang = pair.$2;
+                        final src = langDisplayName(
+                          srcLang.code,
+                          localeCode,
+                        );
+                        final tgt = langDisplayName(
+                          tgtLang.code,
+                          localeCode,
+                        );
                         return ListTile(
                           leading: const Icon(Icons.translate),
-                          title: Text(pair.displayName),
+                          title: Text('$src → $tgt'),
                         );
                       }),
-                      if (_getAvailableLanguagePairs(dictState.selectedDictionaries).isEmpty)
+                      if (manager.getAvailableLanguagePairs().isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
-                            '\u8BF7\u5148\u9009\u62E9\u8BCD\u5178 / Please select dictionaries first',
+                            localeCode == 'zh' ? '请先选择词典' : 'Please select dictionaries first',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                             ),

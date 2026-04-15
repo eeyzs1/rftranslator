@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
@@ -6,8 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-import 'package:rftranslator/features/llm/data/datasources/python_llm_datasource.dart';
-import 'package:rftranslator/features/llm/domain/llm_service.dart';
 
 part 'model_manager.g.dart';
 
@@ -491,16 +489,6 @@ class ModelManager extends _$ModelManager {
 
   Future<bool> _downloadViaPythonBackend(String repoId, String savePath) async {
     try {
-      final llmDataSource = _ref.read(llmDataSourceProvider);
-      if (llmDataSource is PythonLlmDataSource) {
-        final result = await llmDataSource.downloadModel(
-          modelType: state.type.pythonModelTypeKey,
-          savePath: savePath,
-          autoDetect: true,
-        );
-        return result['success'] == true;
-      }
-
       final hubUrl = state.type.modelHubUrl;
       if (hubUrl == null) return false;
 

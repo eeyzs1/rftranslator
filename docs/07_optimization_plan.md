@@ -1,5 +1,11 @@
 # 有道词典 Flutter 复刻版 - 系统性优化方案
 
+> **变更记录 (2026-04-15)**：
+> - ✅ 完成 Python → Flutter 原生迁移（词典 + LLM）
+> - ✅ 修复语言对持久化 Bug
+> - ✅ 新增 StarDictNativeDataSource 纯 Dart 实现
+> - ✅ 集成 llamadart 插件替代 Python LLM
+
 ## 一、项目概述
 
 本项目是基于 Flutter 的跨平台英汉词典应用，采用 Clean Architecture + Riverpod 架构，支持 Android 和 Windows 双平台。本文档针对项目可能存在的性能瓶颈、代码质量问题、用户体验缺陷及架构设计不足提出系统性优化方案。
@@ -228,6 +234,7 @@
 
 2. **内存优化**
    - [x] 实现 LLM 生命周期管理
+   - [x] 迁移到 llamadart 插件（更高效的内存管理）
    - [ ] 添加内存使用监控
    - [ ] 优化图片缓存大小
 
@@ -235,6 +242,13 @@
    - [ ] 实现列表项懒加载
    - [ ] 添加搜索防抖
    - [ ] 优化动画帧率
+
+4. **Python → Flutter 原生迁移** ✅ (2026-04-15 完成)
+   - [x] StarDict 词典纯 Dart 实现（StarDictNativeDataSource）
+   - [x] LLM 推理迁移到 llamadart 插件
+   - [x] 移除 Python 进程依赖
+   - [x] 修复语言对持久化 Bug
+   - [x] 启动时预加载最近使用的语对词典
 
 ### 阶段 2：代码质量优化（优先级：中）
 
