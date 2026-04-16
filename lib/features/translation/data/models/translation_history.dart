@@ -1,4 +1,4 @@
-﻿import 'package:hive/hive.dart';
+import 'package:hive/hive.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
 
 part 'translation_history.g.dart';
@@ -20,9 +20,6 @@ class TranslationHistory extends HiveObject {
   @HiveField(4)
   late DateTime translatedAt;
 
-  @HiveField(5)
-  late bool isFavorite;
-
   TranslationHistory();
 
   TranslationHistory.create({
@@ -31,7 +28,6 @@ class TranslationHistory extends HiveObject {
     required Language sourceLang,
     required Language targetLang,
     required this.translatedAt,
-    this.isFavorite = false,
   })  : sourceLangIndex = sourceLang.index,
         targetLangIndex = targetLang.index;
 

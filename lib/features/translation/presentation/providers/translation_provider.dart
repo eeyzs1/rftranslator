@@ -10,6 +10,7 @@ import 'package:rftranslator/features/llm/domain/llm_service.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
 import 'package:rftranslator/features/translation/domain/entities/translation_result.dart';
 import 'package:rftranslator/features/translation/domain/entities/translation_source.dart';
+import 'package:rftranslator/features/translation/data/models/translation_history.dart';
 import 'package:rftranslator/features/translation/domain/translation_history_provider.dart';
 
 const _unset = Object();
@@ -444,22 +445,15 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
       final effectiveTarget = state.hasLLMResult && state.llmTranslation != null
           ? state.llmTranslation!
           : state.targetText;
-      final effectiveSource = state.hasLLMResult
-          ? TranslationSource.opusMt
-          : state.hasDictionaryResult
-              ? TranslationSource.dictionary
-              : TranslationSource.opusMt;
 
-      final historyRepo = _ref.read(translationHistoryRepositoryProvider);
-      await historyRepo.addHistory(TranslationResult(
+      final historyRepo = _ref.read(historyRepositoryProvider);
+      await historyRepo.addEntry(TranslationHistory.create(
         sourceText: state.sourceText,
         targetText: effectiveTarget,
         sourceLang: state.sourceLang,
         targetLang: state.targetLang,
         translatedAt: DateTime.now(),
-        source: effectiveSource,
-        isWordOrPhrase: state.isWordOrPhrase,
-      ),);
+      ));
       _ref.invalidate(translationHistoryListProvider);
 
       debugPrint('[Translation] Saving recent lang pair: ${state.sourceLang.code}_${state.targetLang.code}');

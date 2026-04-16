@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
 import 'package:rftranslator/core/utils/platform_utils.dart';
 import 'package:rftranslator/features/dictionary/presentation/screens/dictionary_manager_screen.dart';
-import 'package:rftranslator/features/dictionary/presentation/screens/home_screen.dart';
-import 'package:rftranslator/features/dictionary/presentation/screens/word_detail_screen.dart';
 import 'package:rftranslator/features/favorites/presentation/screens/favorites_screen.dart';
 import 'package:rftranslator/features/history/presentation/screens/history_screen.dart';
 import 'package:rftranslator/features/llm/presentation/screens/model_download_screen.dart';
@@ -21,7 +19,6 @@ typedef NavDest = ({IconData icon, IconData selectedIcon, String labelKey, Strin
 
 const List<NavDest> _destinations = [
   (icon: Icons.translate_outlined, selectedIcon: Icons.translate, labelKey: 'translate', route: '/'),
-  (icon: Icons.book_outlined, selectedIcon: Icons.book, labelKey: 'dictionary', route: '/dictionary'),
   (icon: Icons.star_outlined, selectedIcon: Icons.star, labelKey: 'favorites', route: '/favorites'),
   (icon: Icons.history, selectedIcon: Icons.history, labelKey: 'history', route: '/history'),
   (icon: Icons.settings_outlined, selectedIcon: Icons.settings, labelKey: 'settings', route: '/settings'),
@@ -31,7 +28,6 @@ String _getLabel(BuildContext context, String labelKey) {
   final l10n = AppLocalizations.of(context);
   return switch (labelKey) {
     'translate' => l10n.translate,
-    'dictionary' => l10n.dictionary,
     'favorites' => l10n.favorites,
     'history' => l10n.history,
     'settings' => l10n.settings,
@@ -56,21 +52,6 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/',
           builder: (context, state) => const TranslationScreen(),
-        ),
-        GoRoute(
-          path: '/dictionary',
-          builder: (context, state) => const HomeScreen(),
-          routes: [
-            GoRoute(
-              path: 'word/:word',
-              parentNavigatorKey: _rootNavigatorKey,
-              pageBuilder: (context, state) => MaterialPage(
-                child: WordDetailScreen(
-                  word: state.pathParameters['word']!,
-                ),
-              ),
-            ),
-          ],
         ),
         GoRoute(
           path: '/favorites',
@@ -121,9 +102,6 @@ class _ScaffoldWithNavigationState extends ConsumerState<_ScaffoldWithNavigation
           location.startsWith('${_destinations[i].route}/')) {
         return i;
       }
-    }
-    if (location.startsWith('/dictionary')) {
-      return 1;
     }
     return 0;
   }

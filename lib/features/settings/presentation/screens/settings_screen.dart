@@ -160,18 +160,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           const Divider(),
-          _SectionHeader(l10n.dataManagement),
-          ListTile(
-            title: Text(l10n.clearSearchHistory),
-            leading: const Icon(Icons.history),
-            onTap: () {},
-          ),
-          ListTile(
-            title: Text(l10n.clearAllFavorites),
-            leading: const Icon(Icons.star_outline),
-            onTap: () {},
-          ),
-          const Divider(),
           _SectionHeader(l10n.about),
           ListTile(
             title: const Text(''),

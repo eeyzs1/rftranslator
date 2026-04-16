@@ -21,7 +21,7 @@ class TranslationHistoryRepository {
     final existingIndex = historyBox.values.toList().indexWhere((h) =>
         h.sourceText == result.sourceText &&
         h.sourceLang == result.sourceLang &&
-        h.targetLang == result.targetLang);
+        h.targetLang == result.targetLang,);
 
     if (existingIndex >= 0) {
       final existing = historyBox.getAt(existingIndex);

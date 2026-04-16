@@ -1,11 +1,9 @@
-import 'dart:io';
-import 'package:path/path.dart' as path;
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rftranslator/features/llm/domain/model_manager.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
-import 'package:rftranslator/core/router/app_router.dart';
 import 'package:rftranslator/core/utils/app_toast.dart';
 
 class ModelDownloadScreen extends ConsumerStatefulWidget {
@@ -19,7 +17,6 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   String? _selectedSource;
   Map<String, bool>? _sourceAvailability;
   bool _isCheckingSources = false;
-  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -33,16 +30,47 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       _isCheckingSources = true;
     });
 
+    final availability = <String, bool>{};
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ));
+
     try {
-      setState(() {
-        _sourceAvailability = {};
-      });
+      availability['auto'] = true;
+
+      try {
+        await dio.head('https://huggingface.co');
+        availability['huggingface'] = true;
+      } catch (_) {
+        availability['huggingface'] = false;
+      }
+
+      try {
+        await dio.head('https://modelscope.cn');
+        availability['modelscope'] = true;
+      } catch (_) {
+        availability['modelscope'] = false;
+      }
+
+      if (mounted) {
+        setState(() {
+          _sourceAvailability = availability;
+        });
+      }
     } catch (e) {
       debugPrint('Error checking sources: $e');
+      if (mounted) {
+        setState(() {
+          _sourceAvailability = {'auto': true, 'huggingface': true, 'modelscope': true};
+        });
+      }
     } finally {
-      setState(() {
-        _isCheckingSources = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isCheckingSources = false;
+        });
+      }
     }
   }
 
@@ -51,52 +79,52 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     final modelManager = ref.read(modelManagerProvider.notifier);
     final modelState = ref.read(modelManagerProvider);
 
+    final source = _selectedSource ?? 'auto';
+    if (source == 'modelscope' && modelState.type.modelScopeUrl == null) {
+      if (mounted) {
+        AppToast.show(context,
+          '\u6B64\u6A21\u578B ${modelState.type.displayName} \u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216 Auto Detect',
+        );
+      }
+      return;
+    }
+
+    if (source != 'auto' && source != 'modelscope') {
+      final hfAvailable = _sourceAvailability?['huggingface'] ?? false;
+      if (!hfAvailable) {
+        if (mounted) {
+          AppToast.show(context,
+            'HuggingFace \u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216 Auto Detect',
+          );
+        }
+        return;
+      }
+    }
+
     final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
       dialogTitle: l10n.downloadModel,
     );
 
-    setState(() {
-      _isDownloading = true;
-    });
-
     try {
-      String savePath;
-
-      if (selectedDirectory != null && Directory(selectedDirectory).existsSync()) {
-        savePath = path.join(selectedDirectory, modelState.type.folderName);
-      } else {
-        final modelsDir = await modelManager.getModelsDirectory();
-        savePath = path.join(modelsDir.path, modelState.type.folderName);
-      }
-
-      final saveDir = Directory(savePath);
-      if (await saveDir.exists()) {
-        await saveDir.delete(recursive: true);
-      }
-      await saveDir.create(recursive: true);
-
-      await modelManager.startDownload();
-
-      if (mounted) {
-        setState(() {});
-      }
+      await modelManager.startDownload(
+        customDirectory: selectedDirectory,
+        downloadSource: source,
+      );
     } catch (e) {
       if (mounted) {
         AppToast.show(context, '\u4E0B\u8F7D\u51FA\u9519: $e');
       }
-    } finally {
-      setState(() {
-        _isDownloading = false;
-      });
     }
   }
 
   Widget _buildSourceOption(String value, String label, String description) {
     final isAvailable = _sourceAvailability?[value] ?? false;
+    final modelState = ref.read(modelManagerProvider);
+    final isDownloading = modelState.downloadStatus == ModelDownloadStatus.downloading;
 
     return RadioGroup<String>(
       groupValue: _selectedSource,
-      onChanged: _isDownloading
+      onChanged: isDownloading
           ? (_) {}
           : (value) {
               setState(() {
@@ -205,6 +233,9 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     final l10n = AppLocalizations.of(context);
     final modelState = ref.watch(modelManagerProvider);
     final modelManager = ref.read(modelManagerProvider.notifier);
+    final isDownloading = modelState.downloadStatus == ModelDownloadStatus.downloading;
+    final isCompleted = modelState.downloadStatus == ModelDownloadStatus.completed;
+    final isFailed = modelState.downloadStatus == ModelDownloadStatus.failed;
 
     return Scaffold(
       appBar: AppBar(
@@ -252,7 +283,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                             children: [
                               RadioGroup<ModelType>(
                                 groupValue: modelState.type,
-                                onChanged: _isDownloading
+                                onChanged: isDownloading
                                     ? (_) {}
                                     : (value) {
                                         if (value != null) {
@@ -359,65 +390,94 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
 
               const SizedBox(height: 16),
 
-              if (!_isDownloading)
+              if (!isDownloading && !isCompleted)
+                _buildDownloadCard(context, l10n, modelState, downloadedModels),
+
+              if (isDownloading)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          l10n.downloadModel,
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '\u6B63\u5728\u4E0B\u8F7D / Downloading...',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            Text(
+                              '${(modelState.downloadProgress * 100).toStringAsFixed(1)}%',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
+                        LinearProgressIndicator(value: modelState.downloadProgress),
+                        const SizedBox(height: 12),
                         Text(
-                          l10n.downloadingInBackground,
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: (downloadedModels[modelState.type] ?? false)
-                                ? null
-                                : _startDownload,
-                            icon: const Icon(Icons.download),
-                            label: Text(l10n.startDownload),
-                          ),
-                        ),
-                        if (downloadedModels[modelState.type] ?? false)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              l10n.modelAlreadyInstalled,
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
+                          _formatBytes(modelState.downloadedBytes) +
+                              ' / ' +
+                              _formatBytes(modelState.totalBytes),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
-                            ),
-                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
 
-              if (_isDownloading)
+              if (isCompleted || isFailed)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '\u6B63\u5728\u4E0B\u8F7D / Downloading...',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              isCompleted
+                                  ? l10n.downloadCompleted
+                                  : l10n.downloadFailed,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: isCompleted ? Colors.green : Colors.red,
+                                  ),
+                            ),
+                            if (!isCompleted)
+                              IconButton(
+                                onPressed: () => modelManager.resetDownload(),
+                                icon: const Icon(Icons.refresh, size: 20),
+                                tooltip: l10n.retry,
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 12),
-                        const Text(
-                          '\u8BF7\u8010\u5FC3\u7B49\u5F85\n\u8BF7\u67E5\u770B\u63A7\u5236\u53F0\u83B7\u53D6\u8BE6\u7EC6\u4FE1\u606F',
-                        ),
+                        if (modelState.downloadError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            modelState.downloadError!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                        if (isCompleted) ...[
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.check_circle),
+                              label: Text('\u5B8C\u6210 / Done'),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -455,7 +515,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                 Expanded(
                                   child: RadioGroup<ModelType>(
                                     groupValue: modelState.type,
-                                    onChanged: _isDownloading
+                                    onChanged: isDownloading
                                         ? (_) {}
                                         : (value) {
                                             if (value != null) {
@@ -484,7 +544,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: _isDownloading
+                                  onPressed: isDownloading
                                       ? null
                                       : () async {
                                           final confirm = await showDialog<bool>(
@@ -561,5 +621,130 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       downloaded[type] = await manager.isModelDownloaded(type);
     }
     return downloaded;
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
+  Widget _buildDownloadCard(BuildContext context, AppLocalizations l10n, ModelState modelState, Map<ModelType, bool> downloadedModels) {
+    final source = _selectedSource ?? 'auto';
+    final theme = Theme.of(context);
+    final hasScope = modelState.type.modelScopeUrl != null;
+    final hfAvailable = _sourceAvailability?['huggingface'] ?? true;
+    final scopeAvailable = _sourceAvailability?['modelscope'] ?? true;
+    final isDownloaded = downloadedModels[modelState.type] ?? false;
+
+    if (isDownloaded) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.downloadModel, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.modelAlreadyInstalled,
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    String? warning;
+    bool canDownload = true;
+    IconData? warningIcon;
+
+    switch (source) {
+      case 'modelscope':
+        if (!hasScope) {
+          warning = '\u6B64\u6A21\u578B ${modelState.type.displayName} \u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216 Auto Detect';
+          warningIcon = Icons.warning_amber_rounded;
+          canDownload = false;
+        } else if (!scopeAvailable) {
+          warning = 'ModelScope \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC';
+          warningIcon = Icons.cloud_off_rounded;
+          canDownload = false;
+        }
+        break;
+      case 'huggingface':
+        if (!hfAvailable) {
+          warning = 'HuggingFace \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216 Auto Detect';
+          warningIcon = Icons.cloud_off_rounded;
+          canDownload = false;
+        }
+        break;
+      default: // auto
+        if (!hfAvailable && !hasScope) {
+          warning = '\u6B64\u6A21\u578B ${modelState.type.displayName} \u65E0\u53EF\u7528\u4E0B\u8F7D\u6E90\uFF1AHuggingFace \u4E0D\u53EF\u7528\u4E14 ModelScope \u4E0A\u65E0\u6B64\u6A21\u578B';
+          warningIcon = Icons.block_rounded;
+          canDownload = false;
+        } else if (!hfAvailable && !scopeAvailable && hasScope) {
+          warning = '\u6240\u6709\u4E0B\u8F7D\u6E90\u5747\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC';
+          warningIcon = Icons.cloud_off_rounded;
+          canDownload = false;
+        }
+        break;
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.downloadModel, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 12),
+            if (warning != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: theme.colorScheme.error.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(warningIcon, color: theme.colorScheme.error, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        warning,
+                        style: TextStyle(color: theme.colorScheme.onErrorContainer, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Text(l10n.downloadingInBackground, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: canDownload ? _startDownload : null,
+                icon: const Icon(Icons.download),
+                label: Text(l10n.startDownload),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

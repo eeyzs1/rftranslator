@@ -189,26 +189,8 @@ extension ModelTypeExtension on ModelType {
 
   String? get modelScopeUrl {
     return switch (this) {
-      ModelType.opusMtEnZh => 'AI-ModelScope/opus-mt-en-zh',
-      ModelType.opusMtZhEn => 'AI-ModelScope/opus-mt-zh-en',
-      ModelType.opusMtEnDe => 'AI-ModelScope/opus-mt-en-de',
-      ModelType.opusMtEnFr => 'AI-ModelScope/opus-mt-en-fr',
-      ModelType.opusMtEnEs => 'AI-ModelScope/opus-mt-en-es',
-      ModelType.opusMtEnIt => 'AI-ModelScope/opus-mt-en-it',
-      ModelType.opusMtEnPt => 'AI-ModelScope/opus-mt-en-pt',
-      ModelType.opusMtEnRu => 'AI-ModelScope/opus-mt-en-ru',
-      ModelType.opusMtEnAr => 'AI-ModelScope/opus-mt-en-ar',
-      ModelType.opusMtEnJa => 'AI-ModelScope/opus-mt-en-ja',
-      ModelType.opusMtEnKo => 'AI-ModelScope/opus-mt-en-ko',
-      ModelType.opusMtDeEn => 'AI-ModelScope/opus-mt-de-en',
-      ModelType.opusMtFrEn => 'AI-ModelScope/opus-mt-fr-en',
-      ModelType.opusMtEsEn => 'AI-ModelScope/opus-mt-es-en',
-      ModelType.opusMtItEn => 'AI-ModelScope/opus-mt-it-en',
-      ModelType.opusMtPtEn => 'AI-ModelScope/opus-mt-pt-en',
-      ModelType.opusMtRuEn => 'AI-ModelScope/opus-mt-ru-en',
-      ModelType.opusMtArEn => 'AI-ModelScope/opus-mt-ar-en',
-      ModelType.opusMtJaEn => 'AI-ModelScope/opus-mt-ja-en',
-      ModelType.opusMtKoEn => 'AI-ModelScope/opus-mt-ko-en',
+      ModelType.opusMtZhEn => 'moxying/opus-mt-zh-en',
+      _ => null,
     };
   }
 
@@ -418,12 +400,13 @@ class ModelManager extends _$ModelManager {
     return getValidModelPath(modelType);
   }
 
-  Future<void> startDownload({String? customDirectory}) async {
+  Future<void> startDownload({String? customDirectory, String downloadSource = 'huggingface'}) async {
     if (state.downloadStatus == ModelDownloadStatus.downloading) {
       return;
     }
 
-    if (state.type.modelHubUrl == null) {
+    final repoId = state.type.modelHubUrl ?? state.type.modelScopeUrl;
+    if (repoId == null) {
       state = state.copyWith(
         downloadStatus: ModelDownloadStatus.failed,
         downloadError: '\u8BE5\u6A21\u578B\u6682\u4E0D\u652F\u6301\u76F4\u63A5\u4E0B\u8F7D',
@@ -456,10 +439,22 @@ class ModelManager extends _$ModelManager {
       }
       await saveDir.create(recursive: true);
 
-      final success = await _downloadViaPythonBackend(
-        state.type.modelHubUrl!,
-        savePath,
-      );
+      bool success;
+      if (downloadSource == 'auto') {
+        success = await _downloadWithAutoFallback(repoId, savePath);
+      } else if (downloadSource == 'modelscope') {
+        final scopeRepoId = state.type.modelScopeUrl;
+        if (scopeRepoId == null) {
+          state = state.copyWith(
+            downloadStatus: ModelDownloadStatus.failed,
+            downloadError: '\u6B64\u6A21\u578B\u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216 Auto Detect',
+          );
+          return;
+        }
+        success = await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
+      } else {
+        success = await _downloadFromSource(repoId, savePath, 'huggingface');
+      }
 
       if (success) {
         state = state.copyWith(
@@ -487,36 +482,67 @@ class ModelManager extends _$ModelManager {
     }
   }
 
-  Future<bool> _downloadViaPythonBackend(String repoId, String savePath) async {
+  Future<bool> _downloadWithAutoFallback(String repoId, String savePath) async {
+    debugPrint('[ModelManager] Auto mode: trying HuggingFace first...');
     try {
-      final hubUrl = state.type.modelHubUrl;
-      if (hubUrl == null) return false;
-
-      final dio = Dio();
-      final tempPath = '$savePath.tmp';
-
-      if (File(tempPath).existsSync()) {
-        await File(tempPath).delete();
+      return await _downloadFromSource(repoId, savePath, 'huggingface');
+    } catch (e) {
+      debugPrint('[ModelManager] HuggingFace failed ($e), falling back to ModelScope...');
+      if (_cancelToken?.isCancelled ?? false) return false;
+      final scopeRepoId = state.type.modelScopeUrl;
+      if (scopeRepoId == null) {
+        throw Exception(
+          '\u6B64\u6A21\u578B\u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5C1D\u8BD5 HuggingFace \uFF08\u53EF\u80FD\u9700\u8981\u4EE3\u7406\uFF09\u6216\u9009\u62E9\u5176\u4ED6\u6A21\u578B',
+        );
       }
+      return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
+    }
+  }
 
+  Future<bool> _downloadFromSource(String repoId, String savePath, String source) async {
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 10),
+      sendTimeout: const Duration(seconds: 30),
+    ));
+    final files = state.type.requiredFiles;
+    final totalFiles = files.length;
+
+    for (int i = 0; i < totalFiles; i++) {
+      final fileName = files[i];
+      final url = switch (source) {
+        'modelscope' =>
+          'https://modelscope.cn/api/v1/models/$repoId/repo?Revision=master&FilePath=$fileName',
+        _ => 'https://huggingface.co/$repoId/resolve/main/$fileName',
+      };
+      final filePath = path.join(savePath, fileName);
+
+      if (_cancelToken?.isCancelled ?? false) return false;
+
+      debugPrint('[ModelManager] Downloading $fileName from $source ...');
       await dio.download(
-        'https://huggingface.co/$hubUrl/resolve/main/config.json',
-        path.join(savePath, 'config.json'),
+        url,
+        filePath,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
           if (total > 0) {
+            final baseProgress = i / totalFiles;
+            final fileProgress = received / total / totalFiles;
             state = state.copyWith(
-              downloadProgress: received / total * 0.1,
+              downloadProgress: baseProgress + fileProgress,
               downloadedBytes: received,
+              totalBytes: total,
             );
           }
         },
       );
-
-      return true;
-    } catch (e) {
-      return false;
     }
+
+    state = state.copyWith(
+      downloadProgress: 1.0,
+      downloadedBytes: state.totalBytes,
+    );
+    return true;
   }
 
   void cancelDownload() {

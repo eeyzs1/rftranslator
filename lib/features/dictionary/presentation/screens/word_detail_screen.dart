@@ -109,22 +109,22 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'speak',
                 child: Row(
                   children: [
-                    const Icon(Icons.volume_up, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.volume_up, size: 20),
+                    SizedBox(width: 8),
                     Text('\u64AD\u653E'),
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'share',
                 child: Row(
                   children: [
-                    const Icon(Icons.share, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.share, size: 20),
+                    SizedBox(width: 8),
                     Text('\u5206\u4EAB'),
                   ],
                 ),
@@ -183,7 +183,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
             const SizedBox(height: 8),
             Text(
               '/${_wordEntry!.phonetic}/',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 color: Color(0xFFE8002D),
               ),
@@ -279,7 +279,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                     ),
                 ],
               ),
-            )),
+            ),),
           ],
         ],
       ),

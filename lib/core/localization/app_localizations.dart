@@ -54,6 +54,9 @@ class AppLocalizations {
       'dataManagement': 'Data Management',
       'clearSearchHistory': 'Clear Search History',
       'clearAllFavorites': 'Clear All Favorites',
+      'clearSearchHistoryConfirm': 'Are you sure you want to clear all search history?',
+      'clearAllFavoritesConfirm': 'Are you sure you want to remove all favorites?',
+      'favoritesCleared': 'All favorites cleared',
       'about': 'About',
       'version': 'Version',
       'ecdictInfo': 'ECDICT (~3.3M entries)',
@@ -144,6 +147,9 @@ class AppLocalizations {
       'firstTimeGuideMessage': 'To get started with translation, please go to Settings to download dictionaries or AI models first.',
       'goToSettings': 'Go to Settings',
       'noDictionaryOrModel': 'No dictionary or AI model available. Please download them in Settings.',
+      'copySource': 'Copy Source',
+      'copyTarget': 'Copy Translation',
+      'reTranslate': 'Re-translate',
     },
     'zh': {
       'appTitle': 'rftranslator',
@@ -174,6 +180,9 @@ class AppLocalizations {
       'dataManagement': '\u6570\u636E\u7BA1\u7406',
       'clearSearchHistory': '\u6E05\u9664\u641C\u7D22\u5386\u53F2',
       'clearAllFavorites': '\u6E05\u9664\u6240\u6709\u6536\u85CF',
+      'clearSearchHistoryConfirm': '\u786E\u5B9A\u8981\u6E05\u7A7A\u6240\u6709\u641C\u7D22\u5386\u53F2\u5417?',
+      'clearAllFavoritesConfirm': '\u786E\u5B9A\u8981\u6E05\u7A7A\u6240\u6709\u6536\u85CF\u5417?',
+      'favoritesCleared': '\u5DF2\u6E05\u7A7A\u6240\u6709\u6536\u85CF',
       'about': '\u5173\u4E8E',
       'version': '\u7248\u672C',
       'ecdictInfo': 'ECDICT (~330\u4E07\u8BCD\u6761)',
@@ -264,6 +273,9 @@ class AppLocalizations {
       'firstTimeGuideMessage': '\u4E3A\u4E86\u5F00\u59CB\u4F7F\u7528\u7FFB\u8BD1\u529F\u80FD\uFF0C\u8BF7\u5143\u524D\u5F00\u53BB\u8BBE\u7F6E\u9875\u4E0B\u8F7D\u8BCD\u5178\u6216 AI \u6A21\u578B\u3002',
       'goToSettings': '\u524D\u5F80\u8BBE\u7F6E',
       'noDictionaryOrModel': '\u6682\u65E0\u53EF\u7528\u7684\u8BCD\u5178\u6216 AI \u6A21\u578B\uFF0C\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u4E0B\u8F7D\u3002',
+      'copySource': '\u590D\u5236\u6E90\u6587',
+      'copyTarget': '\u590D\u5236\u8BD1\u6587',
+      'reTranslate': '\u91CD\u65B0\u7FFB\u8BD1',
     },
   };
 
@@ -297,6 +309,9 @@ class AppLocalizations {
   String get dataManagement => _t('dataManagement');
   String get clearSearchHistory => _t('clearSearchHistory');
   String get clearAllFavorites => _t('clearAllFavorites');
+  String get clearSearchHistoryConfirm => _t('clearSearchHistoryConfirm');
+  String get clearAllFavoritesConfirm => _t('clearAllFavoritesConfirm');
+  String get favoritesCleared => _t('favoritesCleared');
   String get about => _t('about');
   String get version => _t('version');
   String get ecdictInfo => _t('ecdictInfo');
@@ -388,6 +403,9 @@ class AppLocalizations {
   String get firstTimeGuideMessage => _t('firstTimeGuideMessage');
   String get goToSettings => _t('goToSettings');
   String get noDictionaryOrModel => _t('noDictionaryOrModel');
+  String get copySource => _t('copySource');
+  String get copyTarget => _t('copyTarget');
+  String get reTranslate => _t('reTranslate');
 }
 
 class _AppLocalizationsDelegate

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
-import 'package:rftranslator/core/router/app_router.dart';
 import 'package:rftranslator/core/utils/app_toast.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
 

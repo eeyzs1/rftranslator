@@ -1,8 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
 import 'package:rftranslator/features/translation/domain/translation_history_provider.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
+import 'package:rftranslator/features/translation/presentation/providers/translation_provider.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -26,7 +28,7 @@ class HistoryScreen extends ConsumerWidget {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: Text(l10n.clearSearchHistory),
-                          content: Text(l10n.clearSearchHistory),
+                          content: Text(l10n.clearSearchHistoryConfirm),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
@@ -40,7 +42,7 @@ class HistoryScreen extends ConsumerWidget {
                         ),
                       );
                       if (confirmed == true) {
-                        await ref.read(translationHistoryListProvider.notifier).clearAllHistory();
+                        await ref.read(translationHistoryListProvider.notifier).clearAll();
                       }
                     },
                   )
@@ -100,20 +102,19 @@ class _HistoryListItem extends ConsumerWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) {
-        ref.read(translationHistoryListProvider.notifier).deleteHistory(item);
+        ref.read(translationHistoryListProvider.notifier).deleteEntry(item);
       },
       child: ListTile(
         title: Text(item.sourceText),
         subtitle: Text(item.targetText),
-        trailing: IconButton(
-          icon: Icon(
-            item.isFavorite ? Icons.star : Icons.star_border,
-            color: item.isFavorite ? Colors.amber : null,
-          ),
-          onPressed: () {
-            ref.read(translationHistoryListProvider.notifier).toggleFavorite(item);
-          },
-        ),
+        onTap: () {
+          final notifier = ref.read(translationProvider.notifier);
+          notifier.updateSourceLang(item.sourceLang);
+          notifier.updateTargetLang(item.targetLang);
+          notifier.updateSourceText(item.sourceText);
+          context.go('/');
+          Future.microtask(() => notifier.translate());
+        },
       ),
     );
   }

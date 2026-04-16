@@ -48,7 +48,6 @@ class StarDictNativeDataSource implements DictionaryRepository {
   String? _currentIfoPath;
   bool _isLoaded = false;
   bool _isLoading = false;
-  Uint8List? _decompressedDictDzCache;
 
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
@@ -72,7 +71,6 @@ class StarDictNativeDataSource implements DictionaryRepository {
     _dictFile = null;
     _index = null;
     _info = null;
-    _decompressedDictDzCache = null;
   }
 
   Future<bool> loadDictionary() async {
@@ -114,13 +112,7 @@ class StarDictNativeDataSource implements DictionaryRepository {
         return false;
       }
 
-      if (_info!.dictPath.endsWith('.dz')) {
-        debugPrint('[StarDictNative]   pre-caching .dict.dz decompressed data...');
-        _decompressedDictDzCache = _decompressGzip(await File(_info!.dictPath).readAsBytes());
-        debugPrint('[StarDictNative]   .dict.dz cached: ${_decompressedDictDzCache!.length} bytes');
-      } else {
-        _dictFile = await File(_info!.dictPath).open();
-      }
+      _dictFile = await File(_info!.dictPath).open();
 
       _isLoaded = true;
       debugPrint('[StarDictNative]   dictionary loaded successfully');
@@ -173,20 +165,48 @@ class StarDictNativeDataSource implements DictionaryRepository {
       final baseName = path.basenameWithoutExtension(ifoPath);
 
       String? idxPath;
-      for (final ext in ['.idx', '.idx.gz', '.idx.dz']) {
-        final candidate = path.join(dir, '$baseName$ext');
-        if (File(candidate).existsSync()) {
-          idxPath = candidate;
-          break;
+      final decompressedIdxPath = path.join(dir, '$baseName.idx');
+      if (File(decompressedIdxPath).existsSync()) {
+        idxPath = decompressedIdxPath;
+        debugPrint('[StarDictNative]   using cached decompressed .idx');
+      } else {
+        for (final ext in ['.idx', '.idx.gz', '.idx.dz']) {
+          final candidate = path.join(dir, '$baseName$ext');
+          if (File(candidate).existsSync()) {
+            idxPath = candidate;
+            break;
+          }
+        }
+        if (idxPath != null && (idxPath.endsWith('.gz') || idxPath.endsWith('.dz'))) {
+          debugPrint('[StarDictNative]   decompressing ${path.basename(idxPath)} to cache...');
+          final rawBytes = await File(idxPath).readAsBytes();
+          final decompressed = _decompressGzip(rawBytes);
+          await File(decompressedIdxPath).writeAsBytes(decompressed);
+          debugPrint('[StarDictNative]   cached decompressed .idx (${decompressed.length} bytes)');
+          idxPath = decompressedIdxPath;
         }
       }
 
       String? dictPath;
-      for (final ext in ['.dict', '.dict.dz']) {
-        final candidate = path.join(dir, '$baseName$ext');
-        if (File(candidate).existsSync()) {
-          dictPath = candidate;
-          break;
+      final decompressedDictPath = path.join(dir, '$baseName.dict');
+      if (File(decompressedDictPath).existsSync()) {
+        dictPath = decompressedDictPath;
+        debugPrint('[StarDictNative]   using cached decompressed .dict');
+      } else {
+        for (final ext in ['.dict', '.dict.dz']) {
+          final candidate = path.join(dir, '$baseName$ext');
+          if (File(candidate).existsSync()) {
+            dictPath = candidate;
+            break;
+          }
+        }
+        if (dictPath != null && dictPath.endsWith('.dz')) {
+          debugPrint('[StarDictNative]   decompressing ${path.basename(dictPath)} to cache...');
+          final rawBytes = await File(dictPath).readAsBytes();
+          final decompressed = _decompressGzip(rawBytes);
+          await File(decompressedDictPath).writeAsBytes(decompressed);
+          debugPrint('[StarDictNative]   cached decompressed .dict (${decompressed.length} bytes)');
+          dictPath = decompressedDictPath;
         }
       }
 
@@ -302,31 +322,12 @@ class StarDictNativeDataSource implements DictionaryRepository {
 
   Future<String?> _readDefinition(_IndexEntry entry) async {
     try {
-      if (_info!.dictPath.endsWith('.dz')) {
-        return _readFromDictDzCache(entry);
-      }
-
       if (_dictFile == null) return null;
       await _dictFile!.setPosition(entry.offset);
       final bytes = await _dictFile!.read(entry.size);
       return utf8.decode(bytes, allowMalformed: true);
     } catch (e) {
       debugPrint('[StarDictNative]   ERROR reading definition: $e');
-      return null;
-    }
-  }
-
-  String? _readFromDictDzCache(_IndexEntry entry) {
-    if (_decompressedDictDzCache == null) return null;
-
-    try {
-      final data = _decompressedDictDzCache!;
-      if (entry.offset + entry.size > data.length) return null;
-
-      final definitionBytes = data.sublist(entry.offset, entry.offset + entry.size);
-      return utf8.decode(definitionBytes, allowMalformed: true);
-    } catch (e) {
-      debugPrint('[StarDictNative]   ERROR reading .dict.dz cache: $e');
       return null;
     }
   }

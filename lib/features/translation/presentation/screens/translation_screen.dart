@@ -20,13 +20,20 @@ class TranslationScreen extends ConsumerStatefulWidget {
 
 class _TranslationScreenState extends ConsumerState<TranslationScreen> {
   final TextEditingController _sourceTextController = TextEditingController();
+  bool _isUpdatingFromState = false;
 
   @override
   void initState() {
     super.initState();
     _sourceTextController.addListener(() {
-      ref.read(translationProvider.notifier).updateSourceText(_sourceTextController.text);
+      if (!_isUpdatingFromState) {
+        ref.read(translationProvider.notifier).updateSourceText(_sourceTextController.text);
+      }
     });
+    final state = ref.read(translationProvider);
+    _isUpdatingFromState = true;
+    _sourceTextController.text = state.sourceText;
+    _isUpdatingFromState = false;
   }
 
   @override
@@ -40,6 +47,14 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(translationProvider);
     final notifier = ref.read(translationProvider.notifier);
+
+    ref.listen(translationProvider, (prev, next) {
+      if (prev?.sourceText != next.sourceText && _sourceTextController.text != next.sourceText) {
+        _isUpdatingFromState = true;
+        _sourceTextController.text = next.sourceText;
+        _isUpdatingFromState = false;
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -338,8 +353,8 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     final children = <Widget>[];
 
     if (state.hasDictionaryResult) {
-      if (state.dictionaryResults != null && state.dictionaryResults!.length > 1) {
-        for (final dictResult in state.dictionaryResults!) {
+      if (state.dictionaryResults.length > 1) {
+        for (final dictResult in state.dictionaryResults) {
           children.add(_buildSingleDictionaryCard(l10n, state, dictResult));
           children.add(const SizedBox(height: 12));
         }
@@ -365,14 +380,6 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (state.isWordOrPhrase && state.sourceLang == Language.english)
-          IconButton(
-            onPressed: () {
-              context.push('/dictionary/word/${Uri.encodeComponent(state.sourceText)}');
-            },
-            icon: const Icon(Icons.book_outlined),
-            tooltip: l10n.lookupDictionary,
-          ),
         IconButton(
           onPressed: () {
             Clipboard.setData(ClipboardData(text: state.targetText));
@@ -449,7 +456,7 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
                           '/${dictResult.phonetic}/',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontFamily: 'Courier',
-                            color: Color(0xFFE8002D),
+                            color: const Color(0xFFE8002D),
                           ),
                         ),
                       ),
@@ -475,9 +482,9 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
                 ),
               ),
             ),
-            if (dictResult.definitions != null && dictResult.definitions!.isNotEmpty) ...[
+            if (dictResult.definitions.isNotEmpty) ...[
               const SizedBox(height: 12),
-              ...dictResult.definitions!.asMap().entries.map((entry) {
+              ...dictResult.definitions.asMap().entries.map((entry) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
@@ -511,14 +518,6 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (state.isWordOrPhrase && state.sourceLang == Language.english)
-          IconButton(
-            onPressed: () {
-              context.push('/dictionary/word/${Uri.encodeComponent(state.sourceText)}');
-            },
-            icon: const Icon(Icons.book_outlined, size: 18),
-            tooltip: l10n.lookupDictionary,
-          ),
         IconButton(
           onPressed: () {
             Clipboard.setData(ClipboardData(text: dictResult.targetText));
@@ -866,17 +865,11 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
   }
 
   Future<void> _checkFavoriteStatus() async {
-    final repo = ref.read(translationHistoryRepositoryProvider);
-    final all = await repo.getAllHistory();
-    final found = all.where(
-      (h) =>
-          h.sourceText == widget.sourceText &&
-          h.targetText == widget.targetText &&
-          h.isFavorite,
-    );
+    final favRepo = ref.read(favoritesRepositoryProvider);
+    final isFav = await favRepo.isFavorite(widget.sourceText, widget.sourceLang, widget.targetLang);
     if (mounted) {
       setState(() {
-        _isFavorite = found.isNotEmpty;
+        _isFavorite = isFav;
         _checked = true;
       });
     }
@@ -884,35 +877,21 @@ class _FavoriteButtonState extends ConsumerState<_FavoriteButton> {
 
   Future<void> _toggleFavorite() async {
     final l10n = AppLocalizations.of(context);
-    final repo = ref.read(translationHistoryRepositoryProvider);
-    final all = await repo.getAllHistory();
-    final found = all.where(
-      (h) =>
-          h.sourceText == widget.sourceText &&
-          h.targetText == widget.targetText,
-    );
+    final favRepo = ref.read(favoritesRepositoryProvider);
 
-    if (found.isNotEmpty) {
-      for (final item in found) {
-        if (item.isFavorite != !_isFavorite) {
-          item.isFavorite = !_isFavorite;
-          await item.save();
-        }
-      }
+    if (_isFavorite) {
+      await favRepo.removeFavorite(widget.sourceText, widget.sourceLang, widget.targetLang);
     } else {
-      final historyBox = await repo.box;
-      final history = TranslationHistory.create(
+      final entry = TranslationHistory.create(
         sourceText: widget.sourceText,
         targetText: widget.targetText,
         sourceLang: widget.sourceLang,
         targetLang: widget.targetLang,
         translatedAt: DateTime.now(),
-        isFavorite: true,
       );
-      await historyBox.add(history);
+      await favRepo.addFavorite(entry);
     }
 
-    ref.invalidate(translationHistoryListProvider);
     ref.invalidate(translationFavoriteListProvider);
 
     if (mounted) {

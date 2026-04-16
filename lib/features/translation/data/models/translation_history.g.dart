@@ -3,7 +3,7 @@
 part of 'translation_history.dart';
 
 // **************************************************************************
-// HiveGenerator
+// TypeAdapterGenerator
 // **************************************************************************
 
 class TranslationHistoryAdapter extends TypeAdapter<TranslationHistory> {
@@ -21,14 +21,13 @@ class TranslationHistoryAdapter extends TypeAdapter<TranslationHistory> {
       ..targetText = fields[1] as String
       ..sourceLangIndex = fields[2] as int
       ..targetLangIndex = fields[3] as int
-      ..translatedAt = fields[4] as DateTime
-      ..isFavorite = fields[5] as bool;
+      ..translatedAt = fields[4] as DateTime;
   }
 
   @override
   void write(BinaryWriter writer, TranslationHistory obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.sourceText)
       ..writeByte(1)
@@ -38,9 +37,7 @@ class TranslationHistoryAdapter extends TypeAdapter<TranslationHistory> {
       ..writeByte(3)
       ..write(obj.targetLangIndex)
       ..writeByte(4)
-      ..write(obj.translatedAt)
-      ..writeByte(5)
-      ..write(obj.isFavorite);
+      ..write(obj.translatedAt);
   }
 
   @override

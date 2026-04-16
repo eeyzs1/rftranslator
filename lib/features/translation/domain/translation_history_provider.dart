@@ -1,21 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
-import 'package:rftranslator/features/translation/data/repositories/translation_history_repository.dart';
+import 'package:rftranslator/features/translation/data/repositories/history_repository.dart';
+import 'package:rftranslator/features/translation/data/repositories/favorites_repository.dart';
 
 part 'translation_history_provider.g.dart';
 
 @riverpod
-TranslationHistoryRepository translationHistoryRepository(TranslationHistoryRepositoryRef ref) {
-  return TranslationHistoryRepository();
+HistoryRepository historyRepository(HistoryRepositoryRef ref) {
+  return HistoryRepository();
+}
+
+@riverpod
+FavoritesRepository favoritesRepository(FavoritesRepositoryRef ref) {
+  return FavoritesRepository();
 }
 
 @riverpod
 class TranslationHistoryList extends _$TranslationHistoryList {
   @override
   Future<List<TranslationHistory>> build() async {
-    final repo = ref.watch(translationHistoryRepositoryProvider);
-    return await repo.getAllHistory();
+    final repo = ref.watch(historyRepositoryProvider);
+    return await repo.getAll();
   }
 
   Future<void> refresh() async {
@@ -23,21 +29,15 @@ class TranslationHistoryList extends _$TranslationHistoryList {
     await future;
   }
 
-  Future<void> toggleFavorite(TranslationHistory history) async {
-    final repo = ref.watch(translationHistoryRepositoryProvider);
-    await repo.toggleFavorite(history);
+  Future<void> deleteEntry(TranslationHistory entry) async {
+    final repo = ref.watch(historyRepositoryProvider);
+    await repo.delete(entry);
     await refresh();
   }
 
-  Future<void> deleteHistory(TranslationHistory history) async {
-    final repo = ref.watch(translationHistoryRepositoryProvider);
-    await repo.deleteHistory(history);
-    await refresh();
-  }
-
-  Future<void> clearAllHistory() async {
-    final repo = ref.watch(translationHistoryRepositoryProvider);
-    await repo.clearAllHistory();
+  Future<void> clearAll() async {
+    final repo = ref.watch(historyRepositoryProvider);
+    await repo.clearAll();
     await refresh();
   }
 }
@@ -46,12 +46,36 @@ class TranslationHistoryList extends _$TranslationHistoryList {
 class TranslationFavoriteList extends _$TranslationFavoriteList {
   @override
   Future<List<TranslationHistory>> build() async {
-    final repo = ref.watch(translationHistoryRepositoryProvider);
-    return await repo.getFavorites();
+    final repo = ref.watch(favoritesRepositoryProvider);
+    return await repo.getAll();
   }
 
   Future<void> refresh() async {
     ref.invalidateSelf();
     await future;
+  }
+
+  Future<void> toggleFavorite(TranslationHistory entry) async {
+    final favRepo = ref.watch(favoritesRepositoryProvider);
+    final isFav = await favRepo.isFavorite(entry.sourceText, entry.sourceLang, entry.targetLang);
+
+    if (isFav) {
+      await favRepo.removeFavorite(entry.sourceText, entry.sourceLang, entry.targetLang);
+    } else {
+      await favRepo.addFavorite(entry);
+    }
+    await refresh();
+  }
+
+  Future<void> deleteEntry(TranslationHistory entry) async {
+    final repo = ref.watch(favoritesRepositoryProvider);
+    await repo.delete(entry);
+    await refresh();
+  }
+
+  Future<void> clearAll() async {
+    final repo = ref.watch(favoritesRepositoryProvider);
+    await repo.clearAll();
+    await refresh();
   }
 }
