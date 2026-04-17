@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -259,6 +258,15 @@ const dictionaryCatalog = <DictionaryMeta>[
   DictionaryMeta(id: 'wikdict_zh_fr', downloadUrl: '$_wikDictBase/wikdict-zh-fr.zip', sourceLang: 'zh', targetLang: 'fr', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_fr', originalName: 'Chinois-Français (WikDict)'),
   DictionaryMeta(id: 'wikdict_zh_ru', downloadUrl: '$_wikDictBase/wikdict-zh-ru.zip', sourceLang: 'zh', targetLang: 'ru', sizeBytes: 5 * 1024 * 1024, localDirName: 'wikdict_zh_ru', originalName: 'Китайский-Русский (WikDict)'),
   DictionaryMeta(id: 'wikdict_zh_id', downloadUrl: '$_wikDictBase/wikdict-zh-id.zip', sourceLang: 'zh', targetLang: 'id', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_id', originalName: 'Chinese-Indonesian (WikDict)'),
+  DictionaryMeta(id: 'wikdict_zh_es', downloadUrl: '$_wikDictBase/wikdict-zh-es.zip', sourceLang: 'zh', targetLang: 'es', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_es', originalName: 'Chino-Español (WikDict)'),
+  DictionaryMeta(id: 'wikdict_zh_it', downloadUrl: '$_wikDictBase/wikdict-zh-it.zip', sourceLang: 'zh', targetLang: 'it', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_it', originalName: 'Cinese-Italiano (WikDict)'),
+  DictionaryMeta(id: 'wikdict_zh_nl', downloadUrl: '$_wikDictBase/wikdict-zh-nl.zip', sourceLang: 'zh', targetLang: 'nl', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_nl', originalName: 'Chinees-Nederlands (WikDict)'),
+  DictionaryMeta(id: 'wikdict_zh_sv', downloadUrl: '$_wikDictBase/wikdict-zh-sv.zip', sourceLang: 'zh', targetLang: 'sv', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_zh_sv', originalName: 'Kinesiska-Svenska (WikDict)'),
+  DictionaryMeta(id: 'wikdict_fi_zh', downloadUrl: '$_wikDictBase/wikdict-fi-zh.zip', sourceLang: 'fi', targetLang: 'zh', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_fi_zh', originalName: 'Suomi-Kiina (WikDict)'),
+  DictionaryMeta(id: 'wikdict_el_zh', downloadUrl: '$_wikDictBase/wikdict-el-zh.zip', sourceLang: 'el', targetLang: 'zh', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_el_zh', originalName: 'Ελληνικά-Κινεζικά (WikDict)'),
+  DictionaryMeta(id: 'wikdict_tr_zh', downloadUrl: '$_wikDictBase/wikdict-tr-zh.zip', sourceLang: 'tr', targetLang: 'zh', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_tr_zh', originalName: 'Türkçe-Çince (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ku_zh', downloadUrl: '$_wikDictBase/wikdict-ku-zh.zip', sourceLang: 'ku', targetLang: 'zh', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ku_zh', originalName: 'Kurdî-Chinese (WikDict)'),
+  DictionaryMeta(id: 'wikdict_pl_zh', downloadUrl: '$_wikDictBase/wikdict-pl-zh.zip', sourceLang: 'pl', targetLang: 'zh', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_pl_zh', originalName: 'Polski-Chiński (WikDict)'),
   // WikDict: X → Japanese
   DictionaryMeta(id: 'wikdict_en_ja', downloadUrl: '$_wikDictBase/wikdict-en-ja.zip', sourceLang: 'en', targetLang: 'ja', sizeBytes: 3 * 1024 * 1024, localDirName: 'wikdict_en_ja', originalName: 'English-Japanese (WikDict)'),
   DictionaryMeta(id: 'wikdict_de_ja', downloadUrl: '$_wikDictBase/wikdict-de-ja.zip', sourceLang: 'de', targetLang: 'ja', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_de_ja', originalName: 'Deutsch-Japanisch (WikDict)'),
@@ -271,6 +279,12 @@ const dictionaryCatalog = <DictionaryMeta>[
   DictionaryMeta(id: 'wikdict_ja_it', downloadUrl: '$_wikDictBase/wikdict-ja-it.zip', sourceLang: 'ja', targetLang: 'it', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_it', originalName: '日本語-イタリア語 (WikDict)'),
   DictionaryMeta(id: 'wikdict_ja_pt', downloadUrl: '$_wikDictBase/wikdict-ja-pt.zip', sourceLang: 'ja', targetLang: 'pt', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_pt', originalName: '日本語-ポルトガル語 (WikDict)'),
   DictionaryMeta(id: 'wikdict_ja_ru', downloadUrl: '$_wikDictBase/wikdict-ja-ru.zip', sourceLang: 'ja', targetLang: 'ru', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_ru', originalName: '日本語-ロシア語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_en', downloadUrl: '$_wikDictBase/wikdict-ja-en.zip', sourceLang: 'ja', targetLang: 'en', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_en', originalName: '日本語-英語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_sv', downloadUrl: '$_wikDictBase/wikdict-ja-sv.zip', sourceLang: 'ja', targetLang: 'sv', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_sv', originalName: '日本語-スウェーデン語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_fr', downloadUrl: '$_wikDictBase/wikdict-ja-fr.zip', sourceLang: 'ja', targetLang: 'fr', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_fr', originalName: '日本語-フランス語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_nl', downloadUrl: '$_wikDictBase/wikdict-ja-nl.zip', sourceLang: 'ja', targetLang: 'nl', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_nl', originalName: '日本語-オランダ語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_pl', downloadUrl: '$_wikDictBase/wikdict-ja-pl.zip', sourceLang: 'ja', targetLang: 'pl', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_pl', originalName: '日本語-ポーランド語 (WikDict)'),
+  DictionaryMeta(id: 'wikdict_ja_fi', downloadUrl: '$_wikDictBase/wikdict-ja-fi.zip', sourceLang: 'ja', targetLang: 'fi', sizeBytes: 1 * 1024 * 1024, localDirName: 'wikdict_ja_fi', originalName: '日本語-フィンランド語 (WikDict)'),
   // WikDict: English → X (reverse direction)
   DictionaryMeta(id: 'wikdict_en_de', downloadUrl: '$_wikDictBase/wikdict-en-de.zip', sourceLang: 'en', targetLang: 'de', sizeBytes: 6 * 1024 * 1024, localDirName: 'wikdict_en_de', originalName: 'English-German (WikDict)'),
   DictionaryMeta(id: 'wikdict_en_it', downloadUrl: '$_wikDictBase/wikdict-en-it.zip', sourceLang: 'en', targetLang: 'it', sizeBytes: 4 * 1024 * 1024, localDirName: 'wikdict_en_it', originalName: 'English-Italian (WikDict)'),

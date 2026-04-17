@@ -20,7 +20,7 @@ class HistoryRepository {
     final existingIndex = historyBox.values.toList().indexWhere((h) =>
         h.sourceText == entry.sourceText &&
         h.sourceLang == entry.sourceLang &&
-        h.targetLang == entry.targetLang);
+        h.targetLang == entry.targetLang,);
 
     if (existingIndex >= 0) {
       final existing = historyBox.getAt(existingIndex);

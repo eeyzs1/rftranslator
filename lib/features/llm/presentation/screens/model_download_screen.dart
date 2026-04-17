@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/translation/domain/entities/language.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
 import 'package:rftranslator/core/utils/app_toast.dart';
 
@@ -17,12 +18,31 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   String? _selectedSource;
   Map<String, bool>? _sourceAvailability;
   bool _isCheckingSources = false;
+  final Set<String> _expandedLangs = {};
 
   @override
   void initState() {
     super.initState();
     _selectedSource = 'auto';
     _checkSources();
+  }
+
+  Future<void> _importLocalModel() async {
+    final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: '选择模型文件夹 (Select Model Folder)',
+    );
+    if (selectedDirectory == null) return;
+
+    final modelManager = ref.read(modelManagerProvider.notifier);
+    final error = await modelManager.importLocalModel(selectedDirectory);
+    if (mounted) {
+      if (error != null) {
+        AppToast.show(context, error);
+      } else {
+        AppToast.show(context, '模型导入成功 / Model imported successfully');
+        setState(() {});
+      }
+    }
   }
 
   Future<void> _checkSources() async {
@@ -34,7 +54,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
-    ));
+    ),);
 
     try {
       availability['auto'] = true;
@@ -83,7 +103,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     if (source == 'modelscope' && modelState.type.modelScopeUrl == null) {
       if (mounted) {
         AppToast.show(context,
-          '\u6B64\u6A21\u578B ${modelState.type.displayName} \u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216 Auto Detect',
+          '此模型在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect',
         );
       }
       return;
@@ -94,7 +114,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       if (!hfAvailable) {
         if (mounted) {
           AppToast.show(context,
-            'HuggingFace \u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216 Auto Detect',
+            'HuggingFace 不可用，请切换到 ModelScope 或 Auto Detect',
           );
         }
         return;
@@ -112,9 +132,47 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       );
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '\u4E0B\u8F7D\u51FA\u9519: $e');
+        AppToast.show(context, '下载出错: $e');
       }
     }
+  }
+
+  Map<String, List<ModelType>> _groupModelsBySourceLang() {
+    final groups = <String, List<ModelType>>{};
+    for (final type in ModelType.values) {
+      final srcLang = type.languagePair.$1;
+      groups.putIfAbsent(srcLang, () => []).add(type);
+    }
+    return groups;
+  }
+
+  static const Map<String, Language> _langCodeToEnum = {
+    'en': Language.english,
+    'zh': Language.chinese,
+    'de': Language.german,
+    'fr': Language.french,
+    'es': Language.spanish,
+    'it': Language.italian,
+    'ru': Language.russian,
+    'ar': Language.arabic,
+    'ja': Language.japanese,
+    'ko': Language.korean,
+    'vi': Language.vietnamese,
+    'fi': Language.finnish,
+    'sv': Language.swedish,
+    'bg': Language.bulgarian,
+    'he': Language.hebrew,
+    'ms': Language.malay,
+    'nl': Language.dutch,
+    'uk': Language.ukrainian,
+  };
+
+  String _langDisplayName(String code, String localeCode) {
+    final lang = _langCodeToEnum[code];
+    if (lang != null) {
+      return localeCode == 'zh' ? lang.displayName : lang.displayName;
+    }
+    return code.toUpperCase();
   }
 
   Widget _buildSourceOption(String value, String label, String description) {
@@ -144,7 +202,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  isAvailable ? '\u53EF\u7528 / OK' : '\u4E0D\u53EF\u7528 / Down',
+                  isAvailable ? '可用 / OK' : '不可用 / Down',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -160,77 +218,10 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     );
   }
 
-  Widget _buildHardwareRequirements(HardwareRequirements req) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '\u786C\u4EF6\u8981\u6C42 / Hardware Requirements',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildRequirementItem(
-                  Icons.memory,
-                  '\u5185\u5B58 / RAM',
-                  '\u6700\u4F4E ${req.minimumRamGb}GB / \u63A8\u8350 ${req.recommendedRamGb}GB',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildRequirementItem(
-                  Icons.storage,
-                  '\u5B58\u50A8 / Storage',
-                  '\u9700\u8981 ${req.minimumStorageMb}MB',
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRequirementItem(IconData icon, String title, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 16),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final localeCode = Localizations.localeOf(context).languageCode;
     final modelState = ref.watch(modelManagerProvider);
     final modelManager = ref.read(modelManagerProvider.notifier);
     final isDownloading = modelState.downloadStatus == ModelDownloadStatus.downloading;
@@ -244,7 +235,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isCheckingSources ? null : _checkSources,
-            tooltip: '\u5237\u65B0 / Refresh',
+            tooltip: '刷新 / Refresh',
           ),
         ],
       ),
@@ -257,6 +248,15 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
 
           final downloadedModels = snapshot.data!;
           final downloadedModelTypes = ModelType.values.where((type) => downloadedModels[type] ?? false).toList();
+          final grouped = _groupModelsBySourceLang();
+
+          final sortedLangCodes = grouped.keys.toList()..sort((a, b) {
+            final aIsZh = a == 'zh' ? 0 : (a == 'en' ? 1 : 2);
+            final bIsZh = b == 'zh' ? 0 : (b == 'en' ? 1 : 2);
+            final cmp = aIsZh.compareTo(bIsZh);
+            if (cmp != 0) return cmp;
+            return _langDisplayName(a, localeCode).compareTo(_langDisplayName(b, localeCode));
+          });
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -268,45 +268,100 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '\u7FFB\u8BD1\u6A21\u578B / Translation Models',
+                        '翻译模型 / Translation Models',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      ...ModelType.values.map((type) {
-                        final isDownloaded = downloadedModels[type] ?? false;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RadioGroup<ModelType>(
-                                groupValue: modelState.type,
-                                onChanged: isDownloading
-                                    ? (_) {}
-                                    : (value) {
-                                        if (value != null) {
-                                          modelManager.selectModel(value);
-                                        }
-                                      },
-                                child: RadioListTile<ModelType>(
-                                  title: Text(type.displayName),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(type.description),
-                                      const SizedBox(height: 4),
-                                      Row(
+                      const SizedBox(height: 8),
+                      Text(
+                        localeCode == 'zh'
+                            ? '按源语言分组，点击展开查看可下载的语对模型'
+                            : 'Grouped by source language. Tap to expand and see available language pairs.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...sortedLangCodes.map((langCode) {
+                        final models = grouped[langCode]!;
+                        final langName = _langDisplayName(langCode, localeCode);
+                        final isExpanded = _expandedLangs.contains(langCode);
+                        final downloadedCount = models.where((t) => downloadedModels[t] ?? false).length;
+
+                        return Column(
+                          children: [
+                            ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                child: Text(
+                                  langCode.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                langName,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                localeCode == 'zh'
+                                    ? '$downloadedCount/${models.length} 已安装'
+                                    : '$downloadedCount/${models.length} installed',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              trailing: Icon(
+                                isExpanded ? Icons.expand_less : Icons.expand_more,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (isExpanded) {
+                                    _expandedLangs.remove(langCode);
+                                  } else {
+                                    _expandedLangs.add(langCode);
+                                  }
+                                });
+                              },
+                            ),
+                            if (isExpanded) ...[
+                              const Divider(height: 1),
+                              ...models.map((type) {
+                                final isDownloaded = downloadedModels[type] ?? false;
+                                final tgtLang = type.languagePair.$2;
+                                final tgtName = _langDisplayName(tgtLang, localeCode);
+                                final isSelected = modelState.type == type;
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  child: RadioGroup<ModelType>(
+                                    groupValue: modelState.type,
+                                    onChanged: isDownloading
+                                        ? (_) {}
+                                        : (value) {
+                                            if (value != null) {
+                                              modelManager.selectModel(value);
+                                            }
+                                          },
+                                    child: RadioListTile<ModelType>(
+                                      dense: true,
+                                      contentPadding: const EdgeInsets.only(left: 16),
+                                      title: Row(
                                         children: [
-                                          Text(
-                                            '${l10n.fileSize}: ${type.sizeInfo}',
-                                            style: TextStyle(
-                                              color: Theme.of(context).colorScheme.secondary,
-                                              fontSize: 12,
+                                          Expanded(
+                                            child: Text(
+                                              '${langName} → $tgtName',
+                                              style: TextStyle(
+                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
                                           if (isDownloaded)
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -323,18 +378,42 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                                 ),
                                               ),
                                             ),
+                                          if (!isDownloaded && type.modelHubUrl == null && type.modelScopeUrl == null)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.shade700,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                localeCode == 'zh' ? '仅本地' : 'Local only',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
                                         ],
                                       ),
-                                    ],
+                                      subtitle: Text(
+                                        '${type.sizeInfo}'
+                                        '${type.modelScopeUrl != null ? " · ModelScope ✓" : ""}'
+                                        '${type.modelHubUrl != null ? " · HuggingFace ✓" : ""}',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.secondary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      value: type,
+                                    ),
                                   ),
-                                  value: type,
-                                ),
-                              ),
-                              _buildHardwareRequirements(type.hardwareRequirements),
-                              if (type != ModelType.values.last)
-                                const Divider(height: 24),
+                                );
+                              }),
+                              const SizedBox(height: 4),
                             ],
-                          ),
+                            const Divider(height: 1),
+                          ],
                         );
                       }),
                     ],
@@ -353,7 +432,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       Row(
                         children: [
                           Text(
-                            '\u4E0B\u8F7D\u6E90 / Download Source',
+                            '下载源 / Download Source',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -370,19 +449,88 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       const SizedBox(height: 16),
                       _buildSourceOption(
                         'auto',
-                        '\u81EA\u52A8\u68C0\u6D4B / Auto Detect',
-                        '\u81EA\u52A8\u9009\u62E9\u6700\u4F73\u4E0B\u8F7D\u6E90',
+                        '自动检测 / Auto Detect',
+                        '自动选择最佳下载源',
                       ),
                       _buildSourceOption(
                         'huggingface',
                         'Hugging Face',
-                        '\u5B98\u65B9\u6E90\uFF08\u53EF\u80FD\u9700\u8981\u4EE3\u7406\uFF09',
+                        '官方源（可能需要代理）',
                       ),
                       _buildSourceOption(
                         'modelscope',
-                        'ModelScope\uFF08\u963F\u91CC\uFF09',
-                        '\u963F\u91CC\u4E91\u6A21\u578B\u5E93\uFF08\u56FD\u5185\u63A8\u8350\uFF09',
+                        'ModelScope（阿里）',
+                        '阿里云模型库（国内推荐）',
                       ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '本地导入 / Local Import',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '从本地磁盘导入 OPUS-MT 模型文件夹\n'
+                        '文件夹名需为 opus-mt-[l1]-[l2] 格式（如 opus-mt-zh-de）\n'
+                        '需包含: config.json, pytorch_model.bin, source.spm, target.spm, vocab.json',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _importLocalModel,
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('选择模型文件夹 / Select Model Folder'),
+                        ),
+                      ),
+                      if (ref.read(modelManagerProvider.notifier).customModels.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
+                        Text(
+                          '已导入的自定义模型 / Imported Custom Models',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...ref.read(modelManagerProvider.notifier).customModels.map((entry) {
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.translate, size: 20),
+                            title: Text(entry.displayName),
+                            subtitle: Text(
+                              entry.localPath,
+                              style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              onPressed: () async {
+                                await ref.read(modelManagerProvider.notifier).removeCustomModel(entry.folderName);
+                                if (mounted) setState(() {});
+                              },
+                            ),
+                          );
+                        }),
+                      ],
                     ],
                   ),
                 ),
@@ -404,7 +552,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '\u6B63\u5728\u4E0B\u8F7D / Downloading...',
+                              '正在下载 / Downloading...',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
@@ -419,9 +567,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         LinearProgressIndicator(value: modelState.downloadProgress),
                         const SizedBox(height: 12),
                         Text(
-                          _formatBytes(modelState.downloadedBytes) +
-                              ' / ' +
-                              _formatBytes(modelState.totalBytes),
+                          '${_formatBytes(modelState.downloadedBytes)} / ${_formatBytes(modelState.totalBytes)}',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -474,7 +620,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                             child: FilledButton.icon(
                               onPressed: () => Navigator.pop(context),
                               icon: const Icon(Icons.check_circle),
-                              label: Text('\u5B8C\u6210 / Done'),
+                              label: const Text('完成 / Done'),
                             ),
                           ),
                         ],
@@ -597,15 +743,40 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        '\u67B6\u6784\u8BF4\u660E / Architecture Overview\n\n'
-                        '\u2022 Encoder-Decoder \u67B6\u6784\u6A21\u578B\uFF0C\u4E13\u4E3A\u957F\u53E5\u7FFB\u8BD1\u4F18\u5316\n\n'
-                        '\u7FFB\u8BD1\u6D41\u7A0B / Translation Flow:\n'
-                        '1. \u5355\u8BCD/\u77ED\u8BED \u2192 StarDict \u8BCD\u5178\n'
-                        '2. \u957F\u53E5/\u6BB5\u843D \u2192 Encoder-Decoder \u6A21\u578B\n'
-                        '3. \u8BCD\u5178\u672A\u627E\u5230 \u2192 Encoder-Decoder \u6A21\u578B\u5151\u5E95',
+                        '架构说明 / Architecture Overview\n\n'
+                        '• Encoder-Decoder 架构模型，专为长句翻译优化\n\n'
+                        '翻译流程 / Translation Flow:\n'
+                        '1. 单词/短语 → StarDict 词典\n'
+                        '2. 长句/段落 → Encoder-Decoder 模型\n'
+                        '3. 词典未找到 → Encoder-Decoder 模型兜底',
                       ),
                     ],
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'All OPUS-MT models by Helsinki-NLP (Language Technology Research Group at the University of Helsinki) '
+                        'are licensed under CC BY 4.0. '
+                        'To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -649,7 +820,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -672,29 +843,29 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     switch (source) {
       case 'modelscope':
         if (!hasScope) {
-          warning = '\u6B64\u6A21\u578B ${modelState.type.displayName} \u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216 Auto Detect';
+          warning = '此模型 ${modelState.type.displayName} 在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect';
           warningIcon = Icons.warning_amber_rounded;
           canDownload = false;
         } else if (!scopeAvailable) {
-          warning = 'ModelScope \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC';
+          warning = 'ModelScope 连接不可用，请检查网络';
           warningIcon = Icons.cloud_off_rounded;
           canDownload = false;
         }
         break;
       case 'huggingface':
         if (!hfAvailable) {
-          warning = 'HuggingFace \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216 Auto Detect';
+          warning = 'HuggingFace 连接不可用，请切换到 ModelScope 或 Auto Detect';
           warningIcon = Icons.cloud_off_rounded;
           canDownload = false;
         }
         break;
-      default: // auto
+      default:
         if (!hfAvailable && !hasScope) {
-          warning = '\u6B64\u6A21\u578B ${modelState.type.displayName} \u65E0\u53EF\u7528\u4E0B\u8F7D\u6E90\uFF1AHuggingFace \u4E0D\u53EF\u7528\u4E14 ModelScope \u4E0A\u65E0\u6B64\u6A21\u578B';
+          warning = '此模型 ${modelState.type.displayName} 无可用下载源：HuggingFace 不可用且 ModelScope 上无此模型';
           warningIcon = Icons.block_rounded;
           canDownload = false;
         } else if (!hfAvailable && !scopeAvailable && hasScope) {
-          warning = '\u6240\u6709\u4E0B\u8F7D\u6E90\u5747\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC';
+          warning = '所有下载源均不可用，请检查网络';
           warningIcon = Icons.cloud_off_rounded;
           canDownload = false;
         }

@@ -253,6 +253,7 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
         definitions: primary.definitions,
         examples: primary.examples,
         dictionaryResults: dictResults,
+        isTranslating: false,
         result: TranslationResult(
           sourceText: state.sourceText,
           targetText: primary.targetText,
@@ -267,11 +268,11 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
           isWordOrPhrase: true,
         ),
       );
+      await _saveToHistory();
     } else {
       debugPrint('[Translation] No dictionary results found for any matched dictionary');
+      await _tryOpusMtTranslation();
     }
-
-    await _tryOpusMtTranslation();
   }
 
   Future<WordEntry?> _lookupWordInDictionary(DictionaryMeta meta) async {
@@ -453,7 +454,7 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
         sourceLang: state.sourceLang,
         targetLang: state.targetLang,
         translatedAt: DateTime.now(),
-      ));
+      ),);
       _ref.invalidate(translationHistoryListProvider);
 
       debugPrint('[Translation] Saving recent lang pair: ${state.sourceLang.code}_${state.targetLang.code}');

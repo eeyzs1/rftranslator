@@ -17,6 +17,8 @@ class DictionaryManagerScreen extends ConsumerStatefulWidget {
 }
 
 class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScreen> {
+  final Set<String> _expandedLangs = {};
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +89,42 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     }
   }
 
+  Future<void> _importStarDictFolder(BuildContext context) async {
+    final localeCode = Localizations.localeOf(context).languageCode;
+    final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: localeCode == 'zh' ? '选择 StarDict 词典文件夹' : 'Select StarDict Dictionary Folder',
+    );
+    if (selectedDirectory == null) return;
+
+    final dir = Directory(selectedDirectory);
+    if (!dir.existsSync()) return;
+
+    final ifoFiles = dir.listSync().whereType<File>().where(
+      (f) => f.path.endsWith('.ifo'),
+    ).toList();
+
+    if (ifoFiles.isEmpty) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          localeCode == 'zh' ? '未找到 .ifo 文件，请确保是有效的 StarDict 词典文件夹' : 'No .ifo file found. Please ensure it is a valid StarDict dictionary folder.',
+        );
+      }
+      return;
+    }
+
+    final ifoPath = ifoFiles.first.path;
+    final manager = ref.read(dictionaryManagerProvider.notifier);
+    await manager.setDictionaryPath(ifoPath);
+
+    if (!mounted) return;
+    AppToast.show(
+      context,
+      localeCode == 'zh' ? 'StarDict 词典已导入: ${path.basename(ifoPath)}' : 'StarDict dictionary imported: ${path.basename(ifoPath)}',
+    );
+    setState(() {});
+  }
+
   String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
@@ -112,15 +150,15 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     return downloaded;
   }
 
-  Map<String, List<DictionaryMeta>> _groupDictionariesByTargetLang() {
+  Map<String, List<DictionaryMeta>> _groupDictionariesBySourceLang() {
     final groups = <String, List<DictionaryMeta>>{};
     for (final meta in dictionaryCatalog) {
-      final targetLang = meta.targetLang;
-      groups.putIfAbsent(targetLang, () => []).add(meta);
+      final srcLang = meta.sourceLang;
+      groups.putIfAbsent(srcLang, () => []).add(meta);
     }
     for (final meta in allMDictDictionaries) {
-      final targetLang = meta.targetLang;
-      groups.putIfAbsent(targetLang, () => []).add(meta);
+      final srcLang = meta.sourceLang;
+      groups.putIfAbsent(srcLang, () => []).add(meta);
     }
     return groups;
   }
@@ -149,6 +187,15 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
             ...allMDictDictionaries.where((m) => downloadedDicts[m.id] ?? false).map((m) => m.id),
           ];
 
+          final grouped = _groupDictionariesBySourceLang();
+          final sortedLangCodes = grouped.keys.toList()..sort((a, b) {
+            final aPri = a == 'en' ? 0 : (a == 'zh' ? 1 : 2);
+            final bPri = b == 'en' ? 0 : (b == 'zh' ? 1 : 2);
+            final cmp = aPri.compareTo(bPri);
+            if (cmp != 0) return cmp;
+            return langDisplayName(a, localeCode).compareTo(langDisplayName(b, localeCode));
+          });
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -162,74 +209,125 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         l10n.selectDictionary,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 16),
-                      ..._groupDictionariesByTargetLang().entries.map((entry) {
-                        final targetLang = entry.key;
-                        final dicts = entry.value;
+                      const SizedBox(height: 8),
+                      Text(
+                        localeCode == 'zh'
+                            ? '按源语言分组，点击展开查看可下载的词典'
+                            : 'Grouped by source language. Tap to expand and see available dictionaries.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...sortedLangCodes.map((langCode) {
+                        final dicts = grouped[langCode]!;
+                        final langName = langDisplayName(langCode, localeCode);
+                        final isExpanded = _expandedLangs.contains(langCode);
+                        final downloadedCount = dicts.where((d) => downloadedDicts[d.id] ?? false).length;
+
                         return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                '${langDisplayName(targetLang, localeCode)} ${localeCode == 'zh' ? '释义' : 'Definitions'}',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.primary,
+                            ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              leading: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                child: Text(
+                                  langCode.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
                                 ),
                               ),
+                              title: Text(
+                                langName,
+                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                localeCode == 'zh'
+                                    ? '$downloadedCount/${dicts.length} 已安装'
+                                    : '$downloadedCount/${dicts.length} installed',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              trailing: Icon(
+                                isExpanded ? Icons.expand_less : Icons.expand_more,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (isExpanded) {
+                                    _expandedLangs.remove(langCode);
+                                  } else {
+                                    _expandedLangs.add(langCode);
+                                  }
+                                });
+                              },
                             ),
-                            ...dicts.map((meta) {
-                              final isDownloaded = downloadedDicts[meta.id] ?? false;
-                              return RadioListTile<String>(
-                                title: Text(meta.displayName(localeCode)),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(meta.description(localeCode)),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '${l10n.fileSize}: ${meta.sizeInfo(localeCode)}',
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.secondary,
-                                            fontSize: 12,
+                            if (isExpanded) ...[
+                              const Divider(height: 1),
+                              ...dicts.map((meta) {
+                                final isDownloaded = downloadedDicts[meta.id] ?? false;
+                                final tgtName = langDisplayName(meta.targetLang, localeCode);
+
+                                return RadioListTile<String>(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.only(left: 16),
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '$langName → $tgtName',
+                                        ),
+                                      ),
+                                      if (isDownloaded)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green,
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            l10n.installed,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        if (isDownloaded)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green,
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              l10n.installed,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                value: meta.id,
-                                groupValue: dictState.selectedId,
-                                onChanged: dictState.downloadStatus == DownloadStatus.downloading
-                                    ? null
-                                    : (value) {
-                                        if (value != null) {
-                                          manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
-                                        }
-                                      },
-                              );
-                            }),
-                            const Divider(),
+                                    ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(meta.description(localeCode)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${l10n.fileSize}: ${meta.sizeInfo(localeCode)}',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.secondary,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  value: meta.id,
+                                  groupValue: dictState.selectedId,
+                                  onChanged: dictState.downloadStatus == DownloadStatus.downloading
+                                      ? null
+                                      : (value) {
+                                          if (value != null) {
+                                            manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
+                                          }
+                                        },
+                                );
+                              }),
+                              const SizedBox(height: 4),
+                            ],
+                            const Divider(height: 1),
                           ],
                         );
                       }),
@@ -508,14 +606,14 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                       const Divider(),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh' ? '导入 MDict 词典 (.mdx)' : 'Import MDict Dictionary (.mdx)',
+                        localeCode == 'zh' ? '导入词典' : 'Import Dictionary',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         localeCode == 'zh'
-                            ? '支持 .mdx 格式，导入后自动识别语言对'
-                            : 'Supports .mdx format, language pairs auto-detected',
+                            ? '支持 .mdx 格式和 StarDict 文件夹'
+                            : 'Supports .mdx format and StarDict folders',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -527,6 +625,15 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                           onPressed: () => _importMDict(context),
                           icon: const Icon(Icons.upload_file, size: 18),
                           label: Text(localeCode == 'zh' ? '选择 .mdx 文件' : 'Select .mdx File'),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _importStarDictFolder(context),
+                          icon: const Icon(Icons.folder_open, size: 18),
+                          label: Text(localeCode == 'zh' ? '选择 StarDict 文件夹' : 'Select StarDict Folder'),
                         ),
                       ),
                       const SizedBox(height: 16),

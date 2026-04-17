@@ -1,0 +1,49 @@
+# ================= 配置区域 =================
+# 请在这里修改你的 ModelScope 用户名/组织名
+$USERNAME = "eeyzs1"
+# 本地模型存放的根目录
+$BASE_LOCAL_DIR = "opus_mt_models"
+# ===========================================
+
+# 定义语言对列表
+$langs =  "en-zh","zh-en","en-de","de-en","en-fr","fr-en","en-es","es-en","en-it","it-en","en-ru","ru-en","en-ar","ar-en","en-jap","zh-jap","jap-en","en-ko","ko-en", "zh-de","de-zh","zh-it","zh-vi","fi-zh","sv-zh","zh-bg","zh-fi","zh-he","zh-ms","zh-nl","zh-sv","zh-uk"
+
+Write-Host "[INFO] 开始批量上传模型..." -ForegroundColor Cyan
+Write-Host "[INFO] 目标用户: $USERNAME" -ForegroundColor Cyan
+Write-Host "[INFO] 本地目录: $BASE_LOCAL_DIR" -ForegroundColor Cyan
+Write-Host ""
+
+foreach ($lang in $langs) {
+    # 1. 拼接模型ID和本地路径
+    $model_id = "$USERNAME/opus-mt-$lang"
+    $local_path = Join-Path -Path $BASE_LOCAL_DIR -ChildPath "opus-mt-$lang"
+
+    Write-Host "==========================================" -ForegroundColor Gray
+    Write-Host "[STEP] 正在处理: $lang" -ForegroundColor Yellow
+    Write-Host "[INFO] 目标仓库: $model_id"
+    Write-Host "[INFO] 本地路径: $local_path"
+
+    # 2. 检查本地文件夹是否存在
+    if (-not (Test-Path -Path $local_path)) {
+        Write-Host "[ERROR] 本地文件夹不存在，跳过: $local_path" -ForegroundColor Red
+        Write-Host ""
+        continue
+    }
+
+    # 3. 执行上传命令
+    # --commit-message 用于记录版本信息
+    Write-Host "[INFO] 开始上传..." -ForegroundColor Green
+    modelscope upload $model_id $local_path --repo-type model --commit-message "upload model: $lang"
+
+    # 检查上一条命令的执行状态
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[ERROR] 上传失败: $model_id" -ForegroundColor Red
+    } else {
+        Write-Host "[SUCCESS] 上传成功: $model_id" -ForegroundColor Green
+    }
+    
+    Write-Host ""
+}
+
+Write-Host "==========================================" -ForegroundColor Gray
+Write-Host "[INFO] 所有任务处理完毕！" -ForegroundColor Cyan

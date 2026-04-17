@@ -10,6 +10,14 @@ enum Language {
   italian,
   portuguese,
   arabic,
+  vietnamese,
+  finnish,
+  swedish,
+  bulgarian,
+  hebrew,
+  malay,
+  dutch,
+  ukrainian,
 }
 
 extension LanguageExtension on Language {
@@ -26,6 +34,14 @@ extension LanguageExtension on Language {
       Language.italian => 'Italiano',
       Language.portuguese => 'Português',
       Language.arabic => 'العربية',
+      Language.vietnamese => 'Tiếng Việt',
+      Language.finnish => 'Suomi',
+      Language.swedish => 'Svenska',
+      Language.bulgarian => 'Български',
+      Language.hebrew => 'עברית',
+      Language.malay => 'Bahasa Melayu',
+      Language.dutch => 'Nederlands',
+      Language.ukrainian => 'Українська',
     };
   }
 
@@ -42,6 +58,14 @@ extension LanguageExtension on Language {
       Language.italian => 'it',
       Language.portuguese => 'pt',
       Language.arabic => 'ar',
+      Language.vietnamese => 'vi',
+      Language.finnish => 'fi',
+      Language.swedish => 'sv',
+      Language.bulgarian => 'bg',
+      Language.hebrew => 'he',
+      Language.malay => 'ms',
+      Language.dutch => 'nl',
+      Language.ukrainian => 'uk',
     };
   }
 

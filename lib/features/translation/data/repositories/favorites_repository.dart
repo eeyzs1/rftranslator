@@ -19,7 +19,7 @@ class FavoritesRepository {
     return favBox.values.any((h) =>
         h.sourceText == sourceText &&
         h.sourceLang == sourceLang &&
-        h.targetLang == targetLang);
+        h.targetLang == targetLang,);
   }
 
   Future<void> addFavorite(TranslationHistory entry) async {
@@ -28,7 +28,7 @@ class FavoritesRepository {
     final exists = favBox.values.any((h) =>
         h.sourceText == entry.sourceText &&
         h.sourceLang == entry.sourceLang &&
-        h.targetLang == entry.targetLang);
+        h.targetLang == entry.targetLang,);
 
     if (!exists) {
       await favBox.add(entry);
@@ -41,7 +41,7 @@ class FavoritesRepository {
     final toRemove = favBox.values.where((h) =>
         h.sourceText == sourceText &&
         h.sourceLang == sourceLang &&
-        h.targetLang == targetLang).toList();
+        h.targetLang == targetLang,).toList();
 
     for (final item in toRemove) {
       await item.delete();
