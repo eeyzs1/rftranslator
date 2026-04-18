@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:archive/archive_io.dart';
 import 'package:rftranslator/core/di/providers.dart';
+import 'package:rftranslator/core/storage/resource_registry.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
 import 'package:rftranslator/features/llm/domain/model_manager.dart';
 
@@ -359,19 +360,29 @@ void unregisterMDict(String id) {
 
 List<DictionaryMeta> get allMDictDictionaries => _mdictRegistry.values.toList();
 
-final _downloadedPaths = <String, String>{};
+const String _kDictType = 'dictionary';
+final _dictRegistry = ResourceRegistry();
 
-String? getDownloadedPath(String id) => _downloadedPaths[id];
+String? getDownloadedPath(String id) => _dictRegistry.getEntry(id)?.localPath;
 
-void setDownloadedPath(String id, String path) {
-  _downloadedPaths[id] = path;
+void setDownloadedPath(String id, String p) {
+  final existing = _dictRegistry.getEntry(id);
+  if (existing != null) {
+    _dictRegistry.addOrUpdate(existing.copyWith(localPath: p));
+  }
 }
 
 void removeDownloadedPath(String id) {
-  _downloadedPaths.remove(id);
+  _dictRegistry.remove(id, type: _kDictType);
 }
 
-Map<String, String> get allDownloadedPaths => Map.unmodifiable(_downloadedPaths);
+Map<String, String> get allDownloadedPaths {
+  final result = <String, String>{};
+  for (final entry in _dictRegistry.getByType(_kDictType)) {
+    result[entry.id] = entry.localPath;
+  }
+  return result;
+}
 
 enum DownloadStatus {
   idle,
@@ -428,7 +439,6 @@ class DictionaryManager extends _$DictionaryManager {
   static const String _kDictionaryPathKey = 'dictionary_path';
   static const String _kSelectedDictionariesKey = 'selected_dictionary_ids';
   static const String _kMDictRegistryKey = 'mdict_registry';
-  static const String _kDownloadedPathsKey = 'downloaded_dict_paths';
   static const String _kRecentLangPairsKey = 'recent_lang_pairs';
 
   CancelToken? _cancelToken;
@@ -441,8 +451,8 @@ class DictionaryManager extends _$DictionaryManager {
   Future<void> loadSavedDictionary() async {
     final prefs = await SharedPreferences.getInstance();
 
+    await _dictRegistry.load();
     await _loadMDictRegistry();
-    await _loadDownloadedPaths();
 
     final savedId = prefs.getString(_kDictionaryIdKey);
     if (savedId != null && (findDictionaryById(savedId) != null || _mdictRegistry.containsKey(savedId))) {
@@ -463,13 +473,9 @@ class DictionaryManager extends _$DictionaryManager {
             valid.add(id);
           }
         } else {
-          final dictPath = _downloadedPaths[id];
-          if (dictPath != null) {
-            if (File(dictPath).existsSync() || Directory(dictPath).existsSync()) {
-              valid.add(id);
-            } else {
-              _downloadedPaths.remove(id);
-            }
+          final entry = _dictRegistry.getEntry(id);
+          if (entry != null && entry.pathExists) {
+            valid.add(id);
           } else {
             final meta = findDictionaryById(id);
             if (meta != null) {
@@ -477,7 +483,14 @@ class DictionaryManager extends _$DictionaryManager {
               final defaultPath = path.join(dir.path, meta.localDirName);
               if (File(defaultPath).existsSync() || Directory(defaultPath).existsSync()) {
                 valid.add(id);
-                _downloadedPaths[id] = defaultPath;
+                await _dictRegistry.addOrUpdate(ResourceEntry(
+                  id: id,
+                  type: _kDictType,
+                  localPath: defaultPath,
+                  sourceLang: meta.sourceLang,
+                  targetLang: meta.targetLang,
+                  isEnabled: true,
+                ));
               }
             }
           }
@@ -485,8 +498,6 @@ class DictionaryManager extends _$DictionaryManager {
       }
       state = state.copyWith(selectedDictionaryIds: valid);
     }
-
-    await _saveDownloadedPaths();
   }
 
   static const String _kMDictRegistryPrefix = 'mdict_';
@@ -530,31 +541,6 @@ class DictionaryManager extends _$DictionaryManager {
       entries.add('${meta.id}|||${meta.localDirName}|||${meta.sourceLang}|||${meta.targetLang}|||${meta.originalName ?? ""}|||${meta.sizeBytes}');
     }
     await prefs.setStringList(_kMDictRegistryKey, entries);
-  }
-
-  Future<void> _loadDownloadedPaths() async {
-    final prefs = await SharedPreferences.getInstance();
-    final pathsJson = prefs.getStringList(_kDownloadedPathsKey);
-    if (pathsJson == null) return;
-
-    for (final entry in pathsJson) {
-      final sepIndex = entry.indexOf('|||');
-      if (sepIndex < 0) continue;
-      final id = entry.substring(0, sepIndex);
-      final dictPath = entry.substring(sepIndex + 3);
-      if (File(dictPath).existsSync() || Directory(dictPath).existsSync()) {
-        _downloadedPaths[id] = dictPath;
-      }
-    }
-  }
-
-  Future<void> _saveDownloadedPaths() async {
-    final prefs = await SharedPreferences.getInstance();
-    final entries = <String>[];
-    for (final entry in _downloadedPaths.entries) {
-      entries.add('${entry.key}|||${entry.value}');
-    }
-    await prefs.setStringList(_kDownloadedPathsKey, entries);
   }
 
   Future<DictionaryMeta?> importMDictFile(String filePath, {String? sourceLang, String? targetLang}) async {
@@ -695,12 +681,8 @@ class DictionaryManager extends _$DictionaryManager {
     final meta = state.meta;
     if (meta == null) return false;
 
-    final downloadedPath = _downloadedPaths[meta.id];
-    if (downloadedPath != null) {
-      if (File(downloadedPath).existsSync() || Directory(downloadedPath).existsSync()) {
-        return true;
-      }
-    }
+    final entry = _dictRegistry.getEntry(meta.id);
+    if (entry != null && entry.pathExists) return true;
 
     final dir = await getApplicationDocumentsDirectory();
     final defaultPath = path.join(dir.path, meta.localDirName);
@@ -711,11 +693,8 @@ class DictionaryManager extends _$DictionaryManager {
     final meta = state.meta;
     if (meta == null) return null;
 
-    final downloadedPath = _downloadedPaths[meta.id];
-    if (downloadedPath != null) {
-      if (File(downloadedPath).existsSync()) return downloadedPath;
-      if (Directory(downloadedPath).existsSync()) return downloadedPath;
-    }
+    final entry = _dictRegistry.getEntry(meta.id);
+    if (entry != null && entry.pathExists) return entry.localPath;
 
     final dir = await getApplicationDocumentsDirectory();
     final defaultPath = path.join(dir.path, meta.localDirName);
@@ -848,8 +827,14 @@ class DictionaryManager extends _$DictionaryManager {
         }
 
         await setDictionaryPath(finalPath);
-        setDownloadedPath(meta.id, finalPath);
-        await _saveDownloadedPaths();
+        await _dictRegistry.addOrUpdate(ResourceEntry(
+          id: meta.id,
+          type: _kDictType,
+          localPath: finalPath,
+          sourceLang: meta.sourceLang,
+          targetLang: meta.targetLang,
+          isEnabled: true,
+        ));
 
         final current = Set<String>.from(state.selectedDictionaryIds);
         if (!current.contains(meta.id)) {

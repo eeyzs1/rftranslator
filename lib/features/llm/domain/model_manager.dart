@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:rftranslator/core/storage/resource_registry.dart';
 
 part 'model_manager.g.dart';
 
@@ -54,6 +55,7 @@ enum ModelDownloadStatus {
 
 class ModelState {
   final ModelType type;
+  final Set<ModelType> enabledModelTypes;
   final ModelDownloadStatus downloadStatus;
   final double downloadProgress;
   final int downloadedBytes;
@@ -62,6 +64,7 @@ class ModelState {
 
   ModelState({
     required this.type,
+    this.enabledModelTypes = const {},
     this.downloadStatus = ModelDownloadStatus.idle,
     this.downloadProgress = 0.0,
     this.downloadedBytes = 0,
@@ -71,6 +74,7 @@ class ModelState {
 
   ModelState copyWith({
     ModelType? type,
+    Set<ModelType>? enabledModelTypes,
     ModelDownloadStatus? downloadStatus,
     double? downloadProgress,
     int? downloadedBytes,
@@ -79,6 +83,7 @@ class ModelState {
   }) {
     return ModelState(
       type: type ?? this.type,
+      enabledModelTypes: enabledModelTypes ?? this.enabledModelTypes,
       downloadStatus: downloadStatus ?? this.downloadStatus,
       downloadProgress: downloadProgress ?? this.downloadProgress,
       downloadedBytes: downloadedBytes ?? this.downloadedBytes,
@@ -218,99 +223,103 @@ extension ModelTypeExtension on ModelType {
 
   String get sizeInfo {
     return switch (this) {
-      ModelType.opusMtEnZh || ModelType.opusMtZhEn => '约150MB / ~150MB',
-      _ => '约300MB / ~300MB',
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn ||
+      ModelType.opusMtEnJap || ModelType.opusMtJapEn ||
+      ModelType.opusMtEnKo || ModelType.opusMtKoEn ||
+      ModelType.opusMtZhJap => '约400MB / ~400MB',
+      _ => '约100MB / ~100MB',
     };
   }
 
   int get approximateSizeBytes {
     return switch (this) {
-      ModelType.opusMtEnZh || ModelType.opusMtZhEn => 150 * 1024 * 1024,
-      _ => 300 * 1024 * 1024,
+      ModelType.opusMtEnZh || ModelType.opusMtZhEn ||
+      ModelType.opusMtEnJap || ModelType.opusMtJapEn ||
+      ModelType.opusMtEnKo || ModelType.opusMtKoEn ||
+      ModelType.opusMtZhJap => 400 * 1024 * 1024,
+      _ => 100 * 1024 * 1024,
     };
   }
 
   String? get modelHubUrl {
     return switch (this) {
-      ModelType.opusMtEnZh => 'Helsinki-NLP/opus-mt-en-zh',
-      ModelType.opusMtZhEn => 'Helsinki-NLP/opus-mt-zh-en',
-      ModelType.opusMtEnDe => 'Helsinki-NLP/opus-mt-en-de',
-      ModelType.opusMtEnFr => 'Helsinki-NLP/opus-mt-en-fr',
-      ModelType.opusMtEnEs => 'Helsinki-NLP/opus-mt-en-es',
-      ModelType.opusMtEnIt => 'Helsinki-NLP/opus-mt-en-it',
-      ModelType.opusMtEnRu => 'Helsinki-NLP/opus-mt-en-ru',
-      ModelType.opusMtEnAr => 'Helsinki-NLP/opus-mt-en-ar',
-      ModelType.opusMtEnJap => 'Helsinki-NLP/opus-mt-en-jap',
-      ModelType.opusMtEnKo => 'Helsinki-NLP/opus-mt-tc-big-en-ko',
-      ModelType.opusMtDeEn => 'Helsinki-NLP/opus-mt-de-en',
-      ModelType.opusMtFrEn => 'Helsinki-NLP/opus-mt-fr-en',
-      ModelType.opusMtEsEn => 'Helsinki-NLP/opus-mt-es-en',
-      ModelType.opusMtItEn => 'Helsinki-NLP/opus-mt-it-en',
-      ModelType.opusMtRuEn => 'Helsinki-NLP/opus-mt-ru-en',
-      ModelType.opusMtArEn => 'Helsinki-NLP/opus-mt-ar-en',
-      ModelType.opusMtJapEn => 'Helsinki-NLP/opus-mt-jap-en',
-      ModelType.opusMtKoEn => 'Helsinki-NLP/opus-mt-ko-en',
-      ModelType.opusMtZhDe => 'Helsinki-NLP/opus-mt-zh-de',
-      ModelType.opusMtDeZh => 'Helsinki-NLP/opus-mt-de-ZH',
-      ModelType.opusMtZhIt => 'Helsinki-NLP/opus-mt-zh-it',
-      ModelType.opusMtZhVi => 'Helsinki-NLP/opus-mt-zh-vi',
-      ModelType.opusMtZhJap => 'Helsinki-NLP/opus-mt-tc-big-zh-ja',
-      ModelType.opusMtFiZh => 'Helsinki-NLP/opus-mt-fi-ZH',
-      ModelType.opusMtSvZh => 'Helsinki-NLP/opus-mt-sv-ZH',
-      ModelType.opusMtZhBg => 'Helsinki-NLP/opus-mt-zh-bg',
-      ModelType.opusMtZhFi => 'Helsinki-NLP/opus-mt-zh-fi',
-      ModelType.opusMtZhHe => 'Helsinki-NLP/opus-mt-zh-he',
-      ModelType.opusMtZhMs => 'Helsinki-NLP/opus-mt-zh-ms',
-      ModelType.opusMtZhNl => 'Helsinki-NLP/opus-mt-zh-nl',
-      ModelType.opusMtZhSv => 'Helsinki-NLP/opus-mt-zh-sv',
-      ModelType.opusMtZhUk => 'Helsinki-NLP/opus-mt-zh-uk',
+      ModelType.opusMtEnZh => 'gaudi/opus-mt-en-zh-ctranslate2',
+      ModelType.opusMtZhEn => 'gaudi/opus-mt-zh-en-ctranslate2',
+      ModelType.opusMtEnDe => 'gaudi/opus-mt-en-de-ctranslate2',
+      ModelType.opusMtEnFr => 'gaudi/opus-mt-en-fr-ctranslate2',
+      ModelType.opusMtEnEs => 'gaudi/opus-mt-en-es-ctranslate2',
+      ModelType.opusMtEnIt => 'gaudi/opus-mt-en-it-ctranslate2',
+      ModelType.opusMtEnRu => 'gaudi/opus-mt-en-ru-ctranslate2',
+      ModelType.opusMtEnAr => 'gaudi/opus-mt-en-ar-ctranslate2',
+      ModelType.opusMtEnJap => 'gaudi/opus-mt-en-jap-ctranslate2',
+      ModelType.opusMtEnKo => 'eeyzs1/opus-mt-tc-big-en-ko-ct2',
+      ModelType.opusMtDeEn => 'gaudi/opus-mt-de-en-ctranslate2',
+      ModelType.opusMtFrEn => 'gaudi/opus-mt-fr-en-ctranslate2',
+      ModelType.opusMtEsEn => 'gaudi/opus-mt-es-en-ctranslate2',
+      ModelType.opusMtItEn => 'gaudi/opus-mt-it-en-ctranslate2',
+      ModelType.opusMtRuEn => 'gaudi/opus-mt-ru-en-ctranslate2',
+      ModelType.opusMtArEn => 'gaudi/opus-mt-ar-en-ctranslate2',
+      ModelType.opusMtJapEn => 'gaudi/opus-mt-jap-en-ctranslate2',
+      ModelType.opusMtKoEn => 'gaudi/opus-mt-ko-en-ctranslate2',
+      ModelType.opusMtZhDe => 'manancode/opus-mt-zh-de-ctranslate2-android',
+      ModelType.opusMtDeZh => 'manancode/opus-mt-de-ZH-ctranslate2-android',
+      ModelType.opusMtZhIt => 'manancode/opus-mt-zh-it-ctranslate2-android',
+      ModelType.opusMtZhVi => 'manancode/opus-mt-zh-vi-ctranslate2-android',
+      ModelType.opusMtZhJap => 'eeyzs1/opus-mt-tc-big-zh-ja-ct2',
+      ModelType.opusMtFiZh => 'manancode/opus-mt-fi-ZH-ctranslate2-android',
+      ModelType.opusMtSvZh => 'manancode/opus-mt-sv-ZH-ctranslate2-android',
+      ModelType.opusMtZhBg => 'manancode/opus-mt-zh-bg-ctranslate2-android',
+      ModelType.opusMtZhFi => 'manancode/opus-mt-zh-fi-ctranslate2-android',
+      ModelType.opusMtZhHe => 'manancode/opus-mt-zh-he-ctranslate2-android',
+      ModelType.opusMtZhMs => 'manancode/opus-mt-zh-ms-ctranslate2-android',
+      ModelType.opusMtZhNl => 'manancode/opus-mt-zh-nl-ctranslate2-android',
+      ModelType.opusMtZhSv => 'manancode/opus-mt-zh-sv-ctranslate2-android',
+      ModelType.opusMtZhUk => 'manancode/opus-mt-zh-uk-ctranslate2-android',
     };
   }
 
   String? get modelScopeUrl {
     return switch (this) {
-      ModelType.opusMtEnZh => 'Helsinki-NLP/opus-mt-en-zh',
-      ModelType.opusMtZhEn => 'Helsinki-NLP/opus-mt-zh-en',
-      ModelType.opusMtEnDe => 'Helsinki-NLP/opus-mt-en-de',
-      ModelType.opusMtEnFr => 'Helsinki-NLP/opus-mt-en-fr',
-      ModelType.opusMtEnEs => 'Helsinki-NLP/opus-mt-en-es',
-      ModelType.opusMtEnIt => 'Helsinki-NLP/opus-mt-en-it',
-      ModelType.opusMtEnRu => 'Helsinki-NLP/opus-mt-en-ru',
-      ModelType.opusMtEnAr => 'Helsinki-NLP/opus-mt-en-ar',
-      ModelType.opusMtEnJap => 'Helsinki-NLP/opus-mt-en-jap',
-      ModelType.opusMtEnKo => 'Helsinki-NLP/opus-mt-tc-big-en-ko',
-      ModelType.opusMtDeEn => 'Helsinki-NLP/opus-mt-de-en',
-      ModelType.opusMtFrEn => 'Helsinki-NLP/opus-mt-fr-en',
-      ModelType.opusMtEsEn => 'Helsinki-NLP/opus-mt-es-en',
-      ModelType.opusMtItEn => 'Helsinki-NLP/opus-mt-it-en',
-      ModelType.opusMtRuEn => 'Helsinki-NLP/opus-mt-ru-en',
-      ModelType.opusMtArEn => 'Helsinki-NLP/opus-mt-ar-en',
-      ModelType.opusMtJapEn => 'Helsinki-NLP/opus-mt-jap-en',
-      ModelType.opusMtKoEn => 'Helsinki-NLP/opus-mt-ko-en',
-      ModelType.opusMtZhDe => 'Helsinki-NLP/opus-mt-zh-de',
-      ModelType.opusMtDeZh => 'Helsinki-NLP/opus-mt-de-zh',
-      ModelType.opusMtZhIt => 'Helsinki-NLP/opus-mt-zh-it',
-      ModelType.opusMtZhVi => 'Helsinki-NLP/opus-mt-zh-vi',
-      ModelType.opusMtZhJap => 'Helsinki-NLP/opus-mt-tc-big-zh-ja',
-      ModelType.opusMtFiZh => 'Helsinki-NLP/opus-mt-fi-zh',
-      ModelType.opusMtSvZh => 'Helsinki-NLP/opus-mt-sv-zh',
-      ModelType.opusMtZhBg => 'Helsinki-NLP/opus-mt-zh-bg',
-      ModelType.opusMtZhFi => 'Helsinki-NLP/opus-mt-zh-fi',
-      ModelType.opusMtZhHe => 'Helsinki-NLP/opus-mt-zh-he',
-      ModelType.opusMtZhMs => 'Helsinki-NLP/opus-mt-zh-ms',
-      ModelType.opusMtZhNl => 'Helsinki-NLP/opus-mt-zh-nl',
-      ModelType.opusMtZhSv => 'Helsinki-NLP/opus-mt-zh-sv',
-      ModelType.opusMtZhUk => 'Helsinki-NLP/opus-mt-zh-uk',
+      ModelType.opusMtEnZh => 'eeyzs1/opus-mt-en-zh-ct2',
+      ModelType.opusMtZhEn => 'eeyzs1/opus-mt-zh-en-ct2',
+      ModelType.opusMtEnDe => 'eeyzs1/opus-mt-en-de-ct2',
+      ModelType.opusMtEnFr => 'eeyzs1/opus-mt-en-fr-ct2',
+      ModelType.opusMtEnEs => 'eeyzs1/opus-mt-en-es-ct2',
+      ModelType.opusMtEnIt => 'eeyzs1/opus-mt-en-it-ct2',
+      ModelType.opusMtEnRu => 'eeyzs1/opus-mt-en-ru-ct2',
+      ModelType.opusMtEnAr => 'eeyzs1/opus-mt-en-ar-ct2',
+      ModelType.opusMtEnJap => 'eeyzs1/opus-mt-en-jap-ct2',
+      ModelType.opusMtEnKo => 'eeyzs1/opus-mt-en-ko-ct2',
+      ModelType.opusMtDeEn => 'eeyzs1/opus-mt-de-en-ct2',
+      ModelType.opusMtFrEn => 'eeyzs1/opus-mt-fr-en-ct2',
+      ModelType.opusMtEsEn => 'eeyzs1/opus-mt-es-en-ct2',
+      ModelType.opusMtItEn => 'eeyzs1/opus-mt-it-en-ct2',
+      ModelType.opusMtRuEn => 'eeyzs1/opus-mt-ru-en-ct2',
+      ModelType.opusMtArEn => 'eeyzs1/opus-mt-ar-en-ct2',
+      ModelType.opusMtJapEn => 'eeyzs1/opus-mt-jap-en-ct2',
+      ModelType.opusMtKoEn => 'eeyzs1/opus-mt-ko-en-ct2',
+      ModelType.opusMtZhDe => 'eeyzs1/opus-mt-zh-de-ct2',
+      ModelType.opusMtDeZh => 'eeyzs1/opus-mt-de-zh-ct2',
+      ModelType.opusMtZhIt => 'eeyzs1/opus-mt-zh-it-ct2',
+      ModelType.opusMtZhVi => 'eeyzs1/opus-mt-zh-vi-ct2',
+      ModelType.opusMtZhJap => 'eeyzs1/opus-mt-zh-jap-ct2',
+      ModelType.opusMtFiZh => 'eeyzs1/opus-mt-fi-zh-ct2',
+      ModelType.opusMtSvZh => 'eeyzs1/opus-mt-sv-zh-ct2',
+      ModelType.opusMtZhBg => 'eeyzs1/opus-mt-zh-bg-ct2',
+      ModelType.opusMtZhFi => 'eeyzs1/opus-mt-zh-fi-ct2',
+      ModelType.opusMtZhHe => 'eeyzs1/opus-mt-zh-he-ct2',
+      ModelType.opusMtZhMs => 'eeyzs1/opus-mt-zh-ms-ct2',
+      ModelType.opusMtZhNl => 'eeyzs1/opus-mt-zh-nl-ct2',
+      ModelType.opusMtZhSv => 'eeyzs1/opus-mt-zh-sv-ct2',
+      ModelType.opusMtZhUk => 'eeyzs1/opus-mt-zh-uk-ct2',
     };
   }
 
   List<String> get requiredFiles {
     return [
+      'model.bin',
       'config.json',
-      'pytorch_model.bin',
-      'source.spm',
-      'target.spm',
-      'vocab.json',
+      'shared_vocabulary.json',
     ];
   }
 
@@ -409,17 +418,16 @@ class ModelManager extends _$ModelManager {
   static const String _kSelectedModelKey = 'selected_model';
   static const String _kModelsPathKey = 'models_path';
   static const String _kCustomModelsKey = 'custom_models';
+  static const String _kModelType = 'model';
 
   CancelToken? _cancelToken;
-  Ref get _ref => ref;
+  final _registry = ResourceRegistry();
 
   List<CustomModelEntry> _customModels = [];
-
   List<CustomModelEntry> get customModels => _customModels;
 
   @override
   ModelState build() {
-    _loadCustomModels();
     return ModelState(type: ModelType.opusMtEnZh);
   }
 
@@ -444,11 +452,9 @@ class ModelManager extends _$ModelManager {
   }
 
   static const List<String> _requiredModelFiles = [
+    'model.bin',
     'config.json',
-    'pytorch_model.bin',
-    'source.spm',
-    'target.spm',
-    'vocab.json',
+    'shared_vocabulary.json',
   ];
 
   static bool isValidModelDirectory(String dirPath) {
@@ -462,8 +468,33 @@ class ModelManager extends _$ModelManager {
 
   static final RegExp _opusMtPattern = RegExp(r'^opus-mt-([a-z]{2,3})-([a-z]{2,3})$');
 
+  static const Map<String, String> _folderNameAliases = {
+    'opus-mt-tc-big-en-ko': 'opus-mt-en-ko',
+    'opus-mt-tc-big-zh-ja': 'opus-mt-zh-jap',
+    'opus-mt-de-ZH': 'opus-mt-de-zh',
+    'opus-mt-fi-ZH': 'opus-mt-fi-zh',
+    'opus-mt-sv-ZH': 'opus-mt-sv-zh',
+  };
+
+  static String? normalizeFolderName(String name) {
+    if (_opusMtPattern.hasMatch(name)) return name;
+    return _folderNameAliases[name];
+  }
+
   static CustomModelEntry? parseFolderName(String folderPath) {
     final name = path.basename(folderPath);
+    final normalizedName = normalizeFolderName(name);
+    if (normalizedName != null) {
+      final match = _opusMtPattern.firstMatch(normalizedName);
+      if (match != null) {
+        return CustomModelEntry(
+          folderName: normalizedName,
+          sourceLang: match.group(1)!,
+          targetLang: match.group(2)!,
+          localPath: folderPath,
+        );
+      }
+    }
     final match = _opusMtPattern.firstMatch(name);
     if (match == null) return null;
     return CustomModelEntry(
@@ -481,24 +512,27 @@ class ModelManager extends _$ModelManager {
 
     final entry = parseFolderName(folderPath);
     if (entry == null) {
-      return '文件夹名格式不正确，需要 opus-mt-[l1]-[l2] 格式 (如 opus-mt-zh-de)';
+      return '文件夹名格式不正确，需要 opus-mt-[l1]-[l2] 格式 (如 opus-mt-zh-de)，也支持 opus-mt-tc-big-en-ko 等非标准名称';
     }
 
     final existingKnown = ModelType.values.where(
       (t) => t.folderName == entry.folderName,
     );
     if (existingKnown.isNotEmpty) {
-      final modelsDir = await getModelsDirectory();
-      final targetDir = Directory(path.join(modelsDir.path, entry.folderName));
-      if (!targetDir.existsSync()) {
-        await targetDir.create(recursive: true);
-      }
-      for (final file in _requiredModelFiles) {
-        final src = File(path.join(folderPath, file));
-        final dst = File(path.join(targetDir.path, file));
-        if (src.existsSync()) {
-          await src.copy(dst.path);
-        }
+      final pair = existingKnown.first.languagePair;
+      await _registry.addOrUpdate(ResourceEntry(
+        id: entry.folderName,
+        type: _kModelType,
+        localPath: folderPath,
+        sourceLang: pair.$1,
+        targetLang: pair.$2,
+        isEnabled: true,
+      ));
+
+      final enabled = Set<ModelType>.from(state.enabledModelTypes);
+      if (!enabled.contains(existingKnown.first)) {
+        enabled.add(existingKnown.first);
+        state = state.copyWith(enabledModelTypes: enabled);
       }
       return null;
     }
@@ -513,7 +547,7 @@ class ModelManager extends _$ModelManager {
       sourceLang: entry.sourceLang,
       targetLang: entry.targetLang,
       localPath: folderPath,
-    ));
+    ),);
     await _saveCustomModels();
     return null;
   }
@@ -524,6 +558,20 @@ class ModelManager extends _$ModelManager {
   }
 
   Future<void> loadSavedModel() async {
+    await _registry.load();
+    await _loadCustomModels();
+
+    final enabled = <ModelType>{};
+    for (final entry in _registry.getEnabledByType(_kModelType)) {
+      for (final type in ModelType.values) {
+        if (type.folderName == entry.id) {
+          enabled.add(type);
+          break;
+        }
+      }
+    }
+    state = state.copyWith(enabledModelTypes: enabled);
+
     final prefs = await SharedPreferences.getInstance();
     final index = prefs.getInt(_kSelectedModelKey);
     if (index != null && index >= 0 && index < ModelType.values.length) {
@@ -535,6 +583,130 @@ class ModelManager extends _$ModelManager {
     state = state.copyWith(type: model);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kSelectedModelKey, model.index);
+  }
+
+  Future<void> toggleModelEnabled(ModelType model) async {
+    final current = Set<ModelType>.from(state.enabledModelTypes);
+    final enable = !current.contains(model);
+    if (enable) {
+      current.add(model);
+    } else {
+      current.remove(model);
+    }
+    state = state.copyWith(enabledModelTypes: current);
+    await _registry.setEnabled(model.folderName, enable, type: _kModelType);
+  }
+
+  ModelType? getEnabledModelForLangPair(String sourceCode, String targetCode) {
+    for (final type in state.enabledModelTypes) {
+      final pair = type.languagePair;
+      if (pair.$1 == sourceCode && pair.$2 == targetCode) {
+        final entry = _registry.getEntry(type.folderName);
+        if (entry != null && entry.pathExists) return type;
+      }
+    }
+    return null;
+  }
+
+  Future<void> autoEnableDownloadedModels() async {
+    await _registry.load();
+    final enabled = Set<ModelType>.from(state.enabledModelTypes);
+    bool changed = false;
+
+    final toRemove = <ModelType>[];
+    for (final type in enabled) {
+      if (!await isModelDownloaded(type)) {
+        toRemove.add(type);
+      }
+    }
+    for (final type in toRemove) {
+      enabled.remove(type);
+      changed = true;
+    }
+
+    for (final type in ModelType.values) {
+      if (!enabled.contains(type) && await isModelDownloaded(type)) {
+        enabled.add(type);
+        final pair = type.languagePair;
+        final existingEntry = _registry.getEntry(type.folderName);
+        await _registry.addOrUpdate(ResourceEntry(
+          id: type.folderName,
+          type: _kModelType,
+          localPath: existingEntry?.localPath ?? (await getValidModelPath(type)) ?? '',
+          sourceLang: pair.$1,
+          targetLang: pair.$2,
+          isEnabled: true,
+        ),);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      state = state.copyWith(enabledModelTypes: enabled);
+    }
+  }
+
+  Future<void> migrateExistingModels() async {
+    await _registry.load();
+
+    final modelsDir = await getModelsDirectory();
+    for (final type in ModelType.values) {
+      if (_registry.isRegistered(type.folderName, type: _kModelType)) continue;
+
+      final modelDir = Directory(path.join(modelsDir.path, type.folderName));
+      if (!modelDir.existsSync()) continue;
+
+      bool allFilesExist = true;
+      for (final file in type.requiredFiles) {
+        if (!File(path.join(modelDir.path, file)).existsSync()) {
+          allFilesExist = false;
+          break;
+        }
+      }
+      if (allFilesExist) {
+        final pair = type.languagePair;
+        await _registry.addOrUpdate(ResourceEntry(
+          id: type.folderName,
+          type: _kModelType,
+          localPath: modelDir.path,
+          sourceLang: pair.$1,
+          targetLang: pair.$2,
+          isEnabled: false,
+        ),);
+      }
+    }
+
+    final savedPath = await getSavedModelsPath();
+    if (savedPath != null && savedPath != modelsDir.path) {
+      final customDir = Directory(savedPath);
+      if (customDir.existsSync()) {
+        for (final type in ModelType.values) {
+          if (_registry.isRegistered(type.folderName, type: _kModelType)) continue;
+
+          final modelDir = Directory(path.join(customDir.path, type.folderName));
+          if (!modelDir.existsSync()) continue;
+
+          bool allFilesExist = true;
+          for (final file in type.requiredFiles) {
+            if (!File(path.join(modelDir.path, file)).existsSync()) {
+              allFilesExist = false;
+              break;
+            }
+          }
+          if (allFilesExist) {
+            final pair = type.languagePair;
+            await _registry.addOrUpdate(ResourceEntry(
+              id: type.folderName,
+              type: _kModelType,
+              localPath: modelDir.path,
+              sourceLang: pair.$1,
+              targetLang: pair.$2,
+              isEnabled: false,
+            ),);
+          }
+        }
+      }
+    }
   }
 
   Future<void> setModelsPath(String path) async {
@@ -562,20 +734,36 @@ class ModelManager extends _$ModelManager {
   }
 
   Future<bool> isModelDownloaded(ModelType modelType) async {
+    final entry = _registry.getEntry(modelType.folderName);
+    if (entry != null && entry.pathExists) {
+      bool allFilesExist = true;
+      for (final file in modelType.requiredFiles) {
+        if (!File(path.join(entry.localPath, file)).existsSync()) {
+          allFilesExist = false;
+          break;
+        }
+      }
+      if (allFilesExist) return true;
+      await _registry.remove(modelType.folderName, type: _kModelType);
+    }
+
     final modelsDir = await getModelsDirectory();
     final modelDir = Directory(path.join(modelsDir.path, modelType.folderName));
-
-    if (!await modelDir.exists()) {
-      return false;
-    }
+    if (!modelDir.existsSync()) return false;
 
     for (final file in modelType.requiredFiles) {
-      final filePath = File(path.join(modelDir.path, file));
-      if (!await filePath.exists()) {
-        return false;
-      }
+      if (!File(path.join(modelDir.path, file)).existsSync()) return false;
     }
 
+    final pair = modelType.languagePair;
+    await _registry.addOrUpdate(ResourceEntry(
+      id: modelType.folderName,
+      type: _kModelType,
+      localPath: modelDir.path,
+      sourceLang: pair.$1,
+      targetLang: pair.$2,
+      isEnabled: _registry.isEnabled(modelType.folderName, type: _kModelType),
+    ),);
     return true;
   }
 
@@ -597,12 +785,30 @@ class ModelManager extends _$ModelManager {
   }
 
   Future<void> deleteModel(ModelType modelType) async {
-    final modelsDir = await getModelsDirectory();
-    final modelDir = Directory(path.join(modelsDir.path, modelType.folderName));
+    final entry = _registry.getEntry(modelType.folderName);
+    String? deletedPath;
+
+    if (entry != null && Directory(entry.localPath).existsSync()) {
+      deletedPath = entry.localPath;
+    } else {
+      final modelsDir = await getModelsDirectory();
+      final modelDir = Directory(path.join(modelsDir.path, modelType.folderName));
+      if (modelDir.existsSync()) {
+        deletedPath = modelDir.path;
+      }
+    }
 
     try {
-      if (await modelDir.exists()) {
-        await modelDir.delete(recursive: true);
+      if (deletedPath != null) {
+        await Directory(deletedPath).delete(recursive: true);
+      }
+
+      await _registry.remove(modelType.folderName, type: _kModelType);
+
+      final enabled = Set<ModelType>.from(state.enabledModelTypes);
+      if (enabled.contains(modelType)) {
+        enabled.remove(modelType);
+        state = state.copyWith(enabledModelTypes: enabled);
       }
 
       if (state.type == modelType) {
@@ -630,11 +836,42 @@ class ModelManager extends _$ModelManager {
   }
 
   Future<String?> getValidModelPath(ModelType modelType) async {
+    final entry = _registry.getEntry(modelType.folderName);
+    if (entry != null && entry.pathExists) {
+      bool allFilesExist = true;
+      for (final file in modelType.requiredFiles) {
+        if (!File(path.join(entry.localPath, file)).existsSync()) {
+          allFilesExist = false;
+          break;
+        }
+      }
+      if (allFilesExist) return entry.localPath;
+      await _registry.remove(modelType.folderName, type: _kModelType);
+    }
+
     final modelsDir = await getModelsDirectory();
     final modelDir = Directory(path.join(modelsDir.path, modelType.folderName));
 
-    if (await modelDir.exists()) {
-      return modelDir.path;
+    if (modelDir.existsSync()) {
+      bool allFilesExist = true;
+      for (final file in modelType.requiredFiles) {
+        if (!File(path.join(modelDir.path, file)).existsSync()) {
+          allFilesExist = false;
+          break;
+        }
+      }
+      if (allFilesExist) {
+        final pair = modelType.languagePair;
+        await _registry.addOrUpdate(ResourceEntry(
+          id: modelType.folderName,
+          type: _kModelType,
+          localPath: modelDir.path,
+          sourceLang: pair.$1,
+          targetLang: pair.$2,
+          isEnabled: _registry.isEnabled(modelType.folderName, type: _kModelType),
+        ),);
+        return modelDir.path;
+      }
     }
 
     return null;
@@ -659,12 +896,19 @@ class ModelManager extends _$ModelManager {
     return getCustomModelPath(folderName);
   }
 
-  Future<void> startDownload({String? customDirectory, String downloadSource = 'huggingface'}) async {
+  Future<void> startDownload({
+    String? customDirectory,
+    String downloadSource = 'huggingface',
+    bool? huggingFaceAvailable,
+    bool? modelScopeAvailable,
+  }) async {
     if (state.downloadStatus == ModelDownloadStatus.downloading) {
       return;
     }
 
-    final repoId = state.type.modelHubUrl ?? state.type.modelScopeUrl;
+    final hfRepoId = state.type.modelHubUrl;
+    final scopeRepoId = state.type.modelScopeUrl;
+    final repoId = hfRepoId ?? scopeRepoId;
     if (repoId == null) {
       state = state.copyWith(
         downloadStatus: ModelDownloadStatus.failed,
@@ -700,9 +944,14 @@ class ModelManager extends _$ModelManager {
 
       bool success;
       if (downloadSource == 'auto') {
-        success = await _downloadWithAutoFallback(repoId, savePath);
+        success = await _downloadWithAutoFallback(
+          hfRepoId,
+          scopeRepoId,
+          savePath,
+          hfAvailable: huggingFaceAvailable,
+          scopeAvailable: modelScopeAvailable,
+        );
       } else if (downloadSource == 'modelscope') {
-        final scopeRepoId = state.type.modelScopeUrl;
         if (scopeRepoId == null) {
           state = state.copyWith(
             downloadStatus: ModelDownloadStatus.failed,
@@ -712,10 +961,41 @@ class ModelManager extends _$ModelManager {
         }
         success = await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
       } else {
-        success = await _downloadFromSource(repoId, savePath, 'huggingface');
+        if (hfRepoId == null) {
+          state = state.copyWith(
+            downloadStatus: ModelDownloadStatus.failed,
+            downloadError: '此模型在 HuggingFace 上不可用，请切换到 ModelScope 或 Auto Detect',
+          );
+          return;
+        }
+        success = await _downloadFromSource(hfRepoId, savePath, 'huggingface');
       }
 
       if (success) {
+        final pair = state.type.languagePair;
+        await _registry.addOrUpdate(ResourceEntry(
+          id: state.type.folderName,
+          type: _kModelType,
+          localPath: savePath,
+          sourceLang: pair.$1,
+          targetLang: pair.$2,
+          isEnabled: true,
+        ),);
+
+        if (customDirectory != null && Directory(customDirectory).existsSync()) {
+          final prefs = await SharedPreferences.getInstance();
+          final existingPath = prefs.getString(_kModelsPathKey);
+          if (existingPath == null || !Directory(existingPath).existsSync()) {
+            await prefs.setString(_kModelsPathKey, customDirectory);
+          }
+        }
+
+        final enabled = Set<ModelType>.from(state.enabledModelTypes);
+        if (!enabled.contains(state.type)) {
+          enabled.add(state.type);
+          state = state.copyWith(enabledModelTypes: enabled);
+        }
+
         state = state.copyWith(
           downloadStatus: ModelDownloadStatus.completed,
           downloadProgress: 1.0,
@@ -741,21 +1021,53 @@ class ModelManager extends _$ModelManager {
     }
   }
 
-  Future<bool> _downloadWithAutoFallback(String repoId, String savePath) async {
-    debugPrint('[ModelManager] Auto mode: trying HuggingFace first...');
-    try {
-      return await _downloadFromSource(repoId, savePath, 'huggingface');
-    } catch (e) {
-      debugPrint('[ModelManager] HuggingFace failed ($e), falling back to ModelScope...');
-      if (_cancelToken?.isCancelled ?? false) return false;
-      final scopeRepoId = state.type.modelScopeUrl;
-      if (scopeRepoId == null) {
-        throw Exception(
-          '此模型在 ModelScope 上不可用，请尝试 HuggingFace （可能需要代理）或选择其他模型',
-        );
+  Future<bool> _downloadWithAutoFallback(
+    String? hfRepoId,
+    String? scopeRepoId,
+    String savePath, {
+    bool? hfAvailable,
+    bool? scopeAvailable,
+  }) async {
+    if (hfAvailable == false && scopeRepoId != null && scopeAvailable != false) {
+      debugPrint('[ModelManager] Auto mode: HuggingFace unavailable, trying ModelScope first...');
+      try {
+        return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
+      } catch (e) {
+        debugPrint('[ModelManager] ModelScope also failed ($e), trying HuggingFace as last resort...');
+        if (_cancelToken?.isCancelled ?? false) return false;
+        if (hfRepoId == null) {
+          throw Exception('所有下载源均不可用，请检查网络');
+        }
+        try {
+          return await _downloadFromSource(hfRepoId, savePath, 'huggingface');
+        } catch (e2) {
+          throw Exception('所有下载源均不可用，请检查网络');
+        }
       }
+    }
+
+    if (hfRepoId != null) {
+      debugPrint('[ModelManager] Auto mode: trying HuggingFace first...');
+      try {
+        return await _downloadFromSource(hfRepoId, savePath, 'huggingface');
+      } catch (e) {
+        debugPrint('[ModelManager] HuggingFace failed ($e), falling back to ModelScope...');
+        if (_cancelToken?.isCancelled ?? false) return false;
+        if (scopeRepoId == null) {
+          throw Exception(
+            '此模型在 ModelScope 上不可用，请尝试 HuggingFace （可能需要代理）或选择其他模型',
+          );
+        }
+        return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
+      }
+    }
+
+    if (scopeRepoId != null) {
+      debugPrint('[ModelManager] Auto mode: HuggingFace unavailable, trying ModelScope...');
       return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
     }
+
+    throw Exception('此模型无可用下载源');
   }
 
   Future<bool> _downloadFromSource(String repoId, String savePath, String source) async {

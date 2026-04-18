@@ -30,6 +30,8 @@ class _InitScreenState extends ConsumerState<InitScreen> {
       });
       
       await ref.read(modelManagerProvider.notifier).loadSavedModel();
+      await ref.read(modelManagerProvider.notifier).migrateExistingModels();
+      await ref.read(modelManagerProvider.notifier).autoEnableDownloadedModels();
       
       setState(() {
         _statusKey = 'loadingDictionaryManager';

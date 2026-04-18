@@ -51,6 +51,9 @@ class LlmService extends _$LlmService {
     _isReady = false;
     _modelPath = modelPath;
     try {
+      if (_datasource != null && dataSource != null && _datasource != dataSource) {
+        await _datasource!.dispose();
+      }
       _datasource = dataSource ?? LlamaCppDataSource();
       await _datasource!.loadModel(modelPath);
       _isReady = true;

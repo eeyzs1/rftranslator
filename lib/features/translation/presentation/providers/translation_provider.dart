@@ -7,6 +7,8 @@ import 'package:rftranslator/core/di/providers.dart';
 import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
 import 'package:rftranslator/features/dictionary/domain/entities/word_entry.dart';
 import 'package:rftranslator/features/llm/domain/llm_service.dart';
+import 'package:rftranslator/features/llm/domain/model_manager.dart';
+import 'package:rftranslator/features/llm/data/datasources/ctranslate2_datasource.dart';
 import 'package:rftranslator/features/translation/domain/entities/language.dart';
 import 'package:rftranslator/features/translation/domain/entities/translation_result.dart';
 import 'package:rftranslator/features/translation/domain/entities/translation_source.dart';
@@ -369,13 +371,77 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
   }
 
   Future<void> _tryOpusMtTranslation() async {
-    final llmService = _ref.read(llmServiceProvider.notifier);
-    final llmDataSource = llmService.dataSource;
+    final modelManager = _ref.read(modelManagerProvider.notifier);
+    final matchedModel = modelManager.getEnabledModelForLangPair(
+      state.sourceLang.code,
+      state.targetLang.code,
+    );
 
+    if (matchedModel == null) {
+      debugPrint('[Translation] No enabled model found for ${state.sourceLang.code}→${state.targetLang.code}');
+      if (state.hasDictionaryResult || state.hasLLMResult) {
+        await _saveToHistory();
+      }
+      state = state.copyWith(
+        isTranslating: false,
+        error: state.hasDictionaryResult ? null : '没有可用的翻译模型，请先在模型管理页面下载并启用 ${state.sourceLang.code}→${state.targetLang.code} 语对的模型',
+      );
+      return;
+    }
+
+    final modelPath = await modelManager.getValidModelPath(matchedModel);
+    if (modelPath == null) {
+      debugPrint('[Translation] Model path not found for ${matchedModel.folderName}');
+      if (state.hasDictionaryResult || state.hasLLMResult) {
+        await _saveToHistory();
+      }
+      state = state.copyWith(
+        isTranslating: false,
+        error: state.hasDictionaryResult ? null : '模型文件未找到，请重新下载 ${matchedModel.displayName}',
+      );
+      return;
+    }
+
+    final llmService = _ref.read(llmServiceProvider.notifier);
+    final currentDataSource = llmService.dataSource;
+
+    if (currentDataSource is CTranslate2DataSource) {
+      debugPrint('[Translation] Using existing CTranslate2 data source');
+    } else {
+      if (!await CTranslate2DataSource.isAvailable()) {
+        debugPrint('[Translation] CTranslate2 library not available');
+        if (state.hasDictionaryResult || state.hasLLMResult) {
+          await _saveToHistory();
+        }
+        state = state.copyWith(
+          isTranslating: false,
+          error: state.hasDictionaryResult ? null : 'CTranslate2 运行库未找到，请确保已正确安装',
+        );
+        return;
+      }
+
+      debugPrint('[Translation] Loading model via CTranslate2 FFI: ${matchedModel.folderName}');
+      try {
+        await llmService.initialize(modelPath, dataSource: CTranslate2DataSource());
+        debugPrint('[Translation] Model loaded successfully via CTranslate2 FFI');
+      } catch (e) {
+        debugPrint('[Translation] Failed to load model via CTranslate2: $e');
+        if (state.hasDictionaryResult || state.hasLLMResult) {
+          await _saveToHistory();
+        }
+        state = state.copyWith(
+          isTranslating: false,
+          error: state.hasDictionaryResult ? null : '模型加载失败: $e',
+        );
+        return;
+      }
+    }
+
+    final llmDataSource = llmService.dataSource;
     debugPrint('[Translation] _tryOpusMtTranslation: dataSource type=${llmDataSource.runtimeType}');
 
     if (llmDataSource == null) {
-      debugPrint('[Translation]   No LLM data source available');
+      debugPrint('[Translation]   No LLM data source available after init');
       if (state.hasDictionaryResult || state.hasLLMResult) {
         await _saveToHistory();
       }

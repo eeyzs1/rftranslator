@@ -129,6 +129,8 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       await modelManager.startDownload(
         customDirectory: selectedDirectory,
         downloadSource: source,
+        huggingFaceAvailable: _sourceAvailability?['huggingface'],
+        modelScopeAvailable: _sourceAvailability?['modelscope'],
       );
     } catch (e) {
       if (mounted) {
@@ -225,8 +227,22 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     final modelState = ref.watch(modelManagerProvider);
     final modelManager = ref.read(modelManagerProvider.notifier);
     final isDownloading = modelState.downloadStatus == ModelDownloadStatus.downloading;
-    final isCompleted = modelState.downloadStatus == ModelDownloadStatus.completed;
     final isFailed = modelState.downloadStatus == ModelDownloadStatus.failed;
+
+    ref.listen(modelManagerProvider, (previous, next) {
+      if (previous?.downloadStatus != ModelDownloadStatus.completed &&
+          next.downloadStatus == ModelDownloadStatus.completed) {
+        if (mounted) {
+          AppToast.show(context, '模型下载完成 / Model downloaded successfully');
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              ref.read(modelManagerProvider.notifier).resetDownload();
+              setState(() {});
+            }
+          });
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -334,79 +350,105 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                               const Divider(height: 1),
                               ...models.map((type) {
                                 final isDownloaded = downloadedModels[type] ?? false;
+                                final isEnabled = modelState.enabledModelTypes.contains(type);
                                 final tgtLang = type.languagePair.$2;
                                 final tgtName = _langDisplayName(tgtLang, localeCode);
                                 final isSelected = modelState.type == type;
 
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  child: RadioGroup<ModelType>(
-                                    groupValue: modelState.type,
-                                    onChanged: isDownloading
-                                        ? (_) {}
-                                        : (value) {
-                                            if (value != null) {
-                                              modelManager.selectModel(value);
-                                            }
-                                          },
-                                    child: RadioListTile<ModelType>(
-                                      dense: true,
-                                      contentPadding: const EdgeInsets.only(left: 16),
-                                      title: Row(
-                                        children: [
-                                          Expanded(
+                                  child: ListTile(
+                                    dense: true,
+                                    contentPadding: const EdgeInsets.only(left: 16),
+                                    leading: isDownloaded
+                                        ? Checkbox(
+                                            value: isEnabled,
+                                            onChanged: isDownloading
+                                                ? null
+                                                : (value) {
+                                                    modelManager.toggleModelEnabled(type);
+                                                  },
+                                          )
+                                        : null,
+                                    title: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            '$langName → $tgtName',
+                                            style: TextStyle(
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isDownloaded)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
                                             child: Text(
-                                              '${langName} → $tgtName',
-                                              style: TextStyle(
-                                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              l10n.installed,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
-                                          if (isDownloaded)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                l10n.installed,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                        if (!isDownloaded && type.modelHubUrl == null && type.modelScopeUrl == null)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.shade700,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              localeCode == 'zh' ? '仅本地' : 'Local only',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          if (!isDownloaded && type.modelHubUrl == null && type.modelScopeUrl == null)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange.shade700,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                localeCode == 'zh' ? '仅本地' : 'Local only',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      subtitle: Text(
-                                        '${type.sizeInfo}'
-                                        '${type.modelScopeUrl != null ? " · ModelScope ✓" : ""}'
-                                        '${type.modelHubUrl != null ? " · HuggingFace ✓" : ""}',
-                                        style: TextStyle(
-                                          color: Theme.of(context).colorScheme.secondary,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                      value: type,
+                                          ),
+                                      ],
                                     ),
+                                    subtitle: Text(
+                                      '${type.sizeInfo}'
+                                      '${type.modelScopeUrl != null ? " · ModelScope ✓" : ""}'
+                                      '${type.modelHubUrl != null ? " · HuggingFace ✓" : ""}',
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.secondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    trailing: isDownloaded
+                                        ? null
+                                        : IconButton(
+                                            icon: Icon(
+                                              Icons.download_outlined,
+                                              size: 20,
+                                              color: isSelected
+                                                  ? Theme.of(context).colorScheme.primary
+                                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                            onPressed: isDownloading
+                                                ? null
+                                                : () {
+                                                    modelManager.selectModel(type);
+                                                  },
+                                            tooltip: localeCode == 'zh' ? '选择下载' : 'Select to download',
+                                          ),
+                                    onTap: isDownloading
+                                        ? null
+                                        : () {
+                                            if (isDownloaded) {
+                                              modelManager.toggleModelEnabled(type);
+                                            } else {
+                                              modelManager.selectModel(type);
+                                            }
+                                          },
                                   ),
                                 );
                               }),
@@ -538,7 +580,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
 
               const SizedBox(height: 16),
 
-              if (!isDownloading && !isCompleted)
+              if (!isDownloading && !isFailed)
                 _buildDownloadCard(context, l10n, modelState, downloadedModels),
 
               if (isDownloading)
@@ -577,7 +619,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                   ),
                 ),
 
-              if (isCompleted || isFailed)
+              if (isFailed)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -588,19 +630,16 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              isCompleted
-                                  ? l10n.downloadCompleted
-                                  : l10n.downloadFailed,
+                              l10n.downloadFailed,
                               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: isCompleted ? Colors.green : Colors.red,
+                                    color: Colors.red,
                                   ),
                             ),
-                            if (!isCompleted)
-                              IconButton(
-                                onPressed: () => modelManager.resetDownload(),
-                                icon: const Icon(Icons.refresh, size: 20),
-                                tooltip: l10n.retry,
-                              ),
+                            IconButton(
+                              onPressed: () => modelManager.resetDownload(),
+                              icon: const Icon(Icons.refresh, size: 20),
+                              tooltip: l10n.retry,
+                            ),
                           ],
                         ),
                         if (modelState.downloadError != null) ...[
@@ -613,17 +652,26 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                             ),
                           ),
                         ],
-                        if (isCompleted) ...[
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.check_circle),
-                              label: const Text('完成 / Done'),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: _startDownload,
+                                icon: const Icon(Icons.refresh),
+                                label: Text(l10n.retry),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => modelManager.resetDownload(),
+                                icon: const Icon(Icons.close),
+                                label: const Text('关闭 / Close'),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -638,10 +686,19 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.selectModel,
+                        localeCode == 'zh' ? '已安装模型' : 'Installed Models',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
+                      Text(
+                        localeCode == 'zh'
+                            ? '勾选的模型将在翻译时自动使用（根据语对匹配）'
+                            : 'Checked models will be used automatically during translation (matched by language pair)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       if (downloadedModelTypes.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -654,38 +711,36 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         )
                       else
                         ...downloadedModelTypes.map((type) {
+                          final isEnabled = modelState.enabledModelTypes.contains(type);
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: RadioGroup<ModelType>(
-                                    groupValue: modelState.type,
+                                  child: CheckboxListTile(
+                                    value: isEnabled,
                                     onChanged: isDownloading
-                                        ? (_) {}
+                                        ? null
                                         : (value) {
-                                            if (value != null) {
-                                              modelManager.selectModel(value);
-                                            }
+                                            modelManager.toggleModelEnabled(type);
                                           },
-                                    child: RadioListTile<ModelType>(
-                                      title: Text(type.displayName),
-                                      subtitle: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(type.description),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${l10n.fileSize}: ${type.sizeInfo}',
-                                            style: TextStyle(
-                                              color: Theme.of(context).colorScheme.secondary,
-                                              fontSize: 12,
-                                            ),
+                                    title: Text(type.displayName),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(type.description),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${l10n.fileSize}: ${type.sizeInfo}',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.secondary,
+                                            fontSize: 12,
                                           ),
-                                        ],
-                                      ),
-                                      value: type,
+                                        ),
+                                      ],
                                     ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    dense: true,
                                   ),
                                 ),
                                 IconButton(
@@ -809,67 +864,45 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     final scopeAvailable = _sourceAvailability?['modelscope'] ?? true;
     final isDownloaded = downloadedModels[modelState.type] ?? false;
 
-    if (isDownloaded) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.downloadModel, style: theme.textTheme.titleLarge),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.modelAlreadyInstalled,
-                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     String? warning;
-    bool canDownload = true;
+    bool canDownload = !isDownloaded;
     IconData? warningIcon;
 
-    switch (source) {
-      case 'modelscope':
-        if (!hasScope) {
-          warning = '此模型 ${modelState.type.displayName} 在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect';
-          warningIcon = Icons.warning_amber_rounded;
-          canDownload = false;
-        } else if (!scopeAvailable) {
-          warning = 'ModelScope 连接不可用，请检查网络';
-          warningIcon = Icons.cloud_off_rounded;
-          canDownload = false;
-        }
-        break;
-      case 'huggingface':
-        if (!hfAvailable) {
-          warning = 'HuggingFace 连接不可用，请切换到 ModelScope 或 Auto Detect';
-          warningIcon = Icons.cloud_off_rounded;
-          canDownload = false;
-        }
-        break;
-      default:
-        if (!hfAvailable && !hasScope) {
-          warning = '此模型 ${modelState.type.displayName} 无可用下载源：HuggingFace 不可用且 ModelScope 上无此模型';
-          warningIcon = Icons.block_rounded;
-          canDownload = false;
-        } else if (!hfAvailable && !scopeAvailable && hasScope) {
-          warning = '所有下载源均不可用，请检查网络';
-          warningIcon = Icons.cloud_off_rounded;
-          canDownload = false;
-        }
-        break;
+    if (isDownloaded) {
+      warning = l10n.modelAlreadyInstalled;
+      warningIcon = Icons.check_circle;
+    } else {
+      switch (source) {
+        case 'modelscope':
+          if (!hasScope) {
+            warning = '此模型 ${modelState.type.displayName} 在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect';
+            warningIcon = Icons.warning_amber_rounded;
+            canDownload = false;
+          } else if (!scopeAvailable) {
+            warning = 'ModelScope 连接不可用，请检查网络';
+            warningIcon = Icons.cloud_off_rounded;
+            canDownload = false;
+          }
+          break;
+        case 'huggingface':
+          if (!hfAvailable) {
+            warning = 'HuggingFace 连接不可用，请切换到 ModelScope 或 Auto Detect';
+            warningIcon = Icons.cloud_off_rounded;
+            canDownload = false;
+          }
+          break;
+        default:
+          if (!hfAvailable && !hasScope) {
+            warning = '此模型 ${modelState.type.displayName} 无可用下载源：HuggingFace 不可用且 ModelScope 上无此模型';
+            warningIcon = Icons.block_rounded;
+            canDownload = false;
+          } else if (!hfAvailable && !scopeAvailable && hasScope) {
+            warning = '所有下载源均不可用，请检查网络';
+            warningIcon = Icons.cloud_off_rounded;
+            canDownload = false;
+          }
+          break;
+      }
     }
 
     return Card(
@@ -885,18 +918,32 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer.withOpacity(0.5),
+                  color: isDownloaded
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : theme.colorScheme.errorContainer.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: theme.colorScheme.error.withOpacity(0.3)),
+                  border: Border.all(
+                    color: isDownloaded
+                        ? Colors.green.withValues(alpha: 0.3)
+                        : theme.colorScheme.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(warningIcon, color: theme.colorScheme.error, size: 20),
+                    Icon(
+                      warningIcon,
+                      color: isDownloaded ? Colors.green : theme.colorScheme.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         warning,
-                        style: TextStyle(color: theme.colorScheme.onErrorContainer, fontSize: 13),
+                        style: TextStyle(
+                          color: isDownloaded ? Colors.green : theme.colorScheme.onErrorContainer,
+                          fontSize: 13,
+                          fontWeight: isDownloaded ? FontWeight.bold : FontWeight.normal,
+                        ),
                       ),
                     ),
                   ],
