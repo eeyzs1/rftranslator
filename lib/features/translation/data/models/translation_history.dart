@@ -20,6 +20,9 @@ class TranslationHistory extends HiveObject {
   @HiveField(4)
   late DateTime translatedAt;
 
+  @HiveField(5, defaultValue: false)
+  bool isFavorite = false;
+
   TranslationHistory();
 
   TranslationHistory.create({

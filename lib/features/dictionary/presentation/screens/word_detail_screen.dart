@@ -109,7 +109,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'speak',
                 child: Row(
                   children: [
@@ -119,7 +119,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'share',
                 child: Row(
                   children: [
