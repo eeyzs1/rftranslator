@@ -102,12 +102,13 @@ jobs:
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
           $tempIss = Join-Path $env:RUNNER_TEMP "build.iss"
-          @"
+          $issContent = @"
           #define AppVersion "$appVer"
           #define SourceDir "$srcDir"
           #define OutputDir "$outputDir"
           #include "$issPath"
-          "@ | Set-Content -Path $tempIss -Encoding UTF8
+          "@
+          $issContent | Set-Content -Path $tempIss -Encoding UTF8
 
           Write-Host "Created temp ISS: $tempIss"
           Write-Host "--- Temp ISS content ---"
