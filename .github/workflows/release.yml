@@ -62,52 +62,75 @@ jobs:
           $installerUrl = "https://jrsoftware.org/download.php/is.exe"
           $installerPath = Join-Path $env:RUNNER_TEMP "innosetup.exe"
           Write-Host "Downloading Inno Setup from $installerUrl..."
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -MaximumRetryCount 3
-          Write-Host "Installing Inno Setup..."
-          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES","/SP-" -Wait
-          Write-Host "Inno Setup installed."
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (Test-Path $isccPath) {
-            Write-Host "ISCC.exe found at: $isccPath"
-          } else {
-            Write-Error "ISCC.exe not found at expected path!"
-            Get-ChildItem "C:\Program Files (x86)" -Directory -Filter "Inno*" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found dir: $($_.FullName)" }
+          Write-Host "Downloaded. Size: $((Get-Item $installerPath).Length) bytes"
+          Write-Host "Installing Inno Setup silently..."
+          $proc = Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES","/SP-","/LOG" -Wait -PassThru
+          Write-Host "Installer exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Inno Setup installer failed with exit code $($proc.ExitCode)"
             exit 1
           }
-
-      - name: Prepare Inno Setup script
-        id: iss
-        shell: pwsh
-        run: |
-          $appVer = "${{ steps.prep.outputs.VERSION }}".Trim()
-          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}".Trim()
-          $outputDir = "${{ github.workspace }}\tools\installer\output"
-          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
-
-          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-
-          $content = Get-Content $issPath -Raw -Encoding UTF8
-          $content = $content.Replace('  #define AppVersion "0.0.0"', "  #define AppVersion `"$appVer`"")
-          $content = $content.Replace('  #define SourceDir ".\build"', "  #define SourceDir `"$srcDir`"")
-          $content = $content.Replace('  #define OutputDir ".\output"', "  #define OutputDir `"$outputDir`"")
-
-          $modifiedPath = Join-Path $env:RUNNER_TEMP "rftranslator_build.iss"
-          [System.IO.File]::WriteAllText($modifiedPath, $content, (New-Object System.Text.UTF8Encoding $false))
-
-          Write-Host "Modified ISS file created at: $modifiedPath"
-          Write-Host "Content preview (first 20 lines):"
-          Get-Content $modifiedPath -TotalCount 20 | Write-Host
-          echo "ISS_PATH=$modifiedPath" >> $env:GITHUB_OUTPUT
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $isccPath)) {
+            Write-Error "ISCC.exe not found at $isccPath"
+            Get-ChildItem "C:\Program Files (x86)" -Directory -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  Dir: $($_.FullName)" }
+            exit 1
+          }
+          Write-Host "ISCC.exe found at $isccPath"
 
       - name: Build Inno Setup installer
-        shell: pwsh
+        shell: cmd
         run: |
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          $issPath = "${{ steps.iss.outputs.ISS_PATH }}"
-          Write-Host "Running ISCC..."
-          Write-Host "  ISCC: $isccPath"
-          Write-Host "  ISS:  $issPath"
-          & $isccPath $issPath
+          echo === Building Inno Setup installer ===
+          set "APP_VER=${{ steps.prep.outputs.VERSION }}"
+          set "SRC_DIR=${{ steps.prep.outputs.BUILD_DIR }}"
+          set "OUTPUT_DIR=${{ github.workspace }}\tools\installer\output"
+          set "ISS_PATH=${{ github.workspace }}\tools\installer\rftranslator.iss"
+          set "ISCC_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+
+          echo AppVersion: %APP_VER%
+          echo SourceDir:  %SRC_DIR%
+          echo OutputDir:  %OUTPUT_DIR%
+          echo ISS file:   %ISS_PATH%
+          echo ISCC path:  %ISCC_PATH%
+
+          if not exist "%SRC_DIR%" (
+            echo ERROR: Source directory does not exist: %SRC_DIR%
+            exit /b 1
+          )
+
+          echo Source directory contents:
+          dir "%SRC_DIR%"
+
+          if not exist "%ISS_PATH%" (
+            echo ERROR: ISS file does not exist: %ISS_PATH%
+            exit /b 1
+          )
+
+          if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+
+          echo Running ISCC...
+          "%ISCC_PATH%" /DAppVersion=%APP_VER% /DSourceDir="%SRC_DIR%" /DOutputDir="%OUTPUT_DIR%" "%ISS_PATH%"
+
+          if %ERRORLEVEL% neq 0 (
+            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
+            exit /b %ERRORLEVEL%
+          )
+
+          set "INSTALLER_NAME=rftranslator-%APP_VER%-setup.exe"
+          set "INSTALLER_PATH=%OUTPUT_DIR%\%INSTALLER_NAME%"
+
+          if exist "%INSTALLER_PATH%" (
+            echo SUCCESS: Installer created at %INSTALLER_PATH%
+            for %%A in ("%INSTALLER_PATH%") do echo Size: %%~zA bytes
+          ) else (
+            echo ERROR: Installer not found at %INSTALLER_PATH%
+            echo Output directory contents:
+            dir "%OUTPUT_DIR%"
+            exit /b 1
+          )
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
