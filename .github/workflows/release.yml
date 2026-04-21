@@ -80,59 +80,70 @@ jobs:
           Write-Host "ISCC.exe found at $isccPath"
 
       - name: Build Inno Setup installer
-        shell: cmd
+        shell: pwsh
         run: |
-          echo === Build Inno Setup installer ===
-          set APP_VER=${{ steps.prep.outputs.VERSION }}
-          set SRC_DIR=${{ steps.prep.outputs.BUILD_DIR }}
-          set OUTPUT_DIR=${{ github.workspace }}\tools\installer\output
-          set ISS_PATH=${{ github.workspace }}\tools\installer\rftranslator.iss
-          set ISCC_PATH=C:\Program Files (x86)\Inno Setup 6\ISCC.exe
+          $appVer = "${{ steps.prep.outputs.VERSION }}"
+          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}"
+          $outputDir = "${{ github.workspace }}\tools\installer\output"
+          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
-          echo AppVersion: %APP_VER%
-          echo SourceDir:  %SRC_DIR%
-          echo OutputDir:  %OUTPUT_DIR%
-          echo ISS file:   %ISS_PATH%
-          echo ISCC path:  %ISCC_PATH%
+          Write-Host "=== Build Inno Setup installer ==="
+          Write-Host "AppVersion: $appVer"
+          Write-Host "SourceDir:  $srcDir"
+          Write-Host "OutputDir:  $outputDir"
+          Write-Host "ISS file:   $issPath"
+          Write-Host "ISCC path:  $isccPath"
 
-          if not exist "%ISCC_PATH%" (
-            echo ERROR: ISCC.exe not found!
-            exit /b 1
-          )
-          if not exist "%SRC_DIR%" (
-            echo ERROR: Source directory does not exist: %SRC_DIR%
-            exit /b 1
-          )
-          if not exist "%ISS_PATH%" (
-            echo ERROR: ISS file does not exist: %ISS_PATH%
-            exit /b 1
-          )
+          if (-not (Test-Path $isccPath)) { throw "ISCC.exe not found at $isccPath" }
+          if (-not (Test-Path $srcDir)) { throw "Source directory not found: $srcDir" }
+          if (-not (Test-Path $issPath)) { throw "ISS file not found: $issPath" }
 
-          if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-          echo Source directory contents:
-          dir /b "%SRC_DIR%" | findstr /n "^" | findstr /b "1: 2: 3: 4: 5: 6: 7: 8: 9: 10:"
+          Write-Host "Source directory contents:"
+          Get-ChildItem $srcDir | Select-Object -First 10 | ForEach-Object { Write-Host "  $($_.Name)" }
 
-          echo Running ISCC...
-          "%ISCC_PATH%" /DAppVersion=%APP_VER% /DSourceDir="%SRC_DIR%" /DOutputDir="%OUTPUT_DIR%" "%ISS_PATH%"
+          $issContent = Get-Content $issPath -Raw
+          Write-Host "=== ISS file content (first 500 chars) ==="
+          Write-Host $issContent.Substring(0, [Math]::Min(500, $issContent.Length))
 
-          if %ERRORLEVEL% neq 0 (
-            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
-            exit /b 1
-          )
+          Write-Host "Running ISCC..."
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = $isccPath
+          $psi.Arguments = "/DAppVersion=$appVer /DSourceDir=""$srcDir"" /DOutputDir=""$outputDir"" ""$issPath"""
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
+          $psi.CreateNoWindow = $true
 
-          set INSTALLER_NAME=rftranslator-%APP_VER%-setup.exe
-          set INSTALLER_PATH=%OUTPUT_DIR%\%INSTALLER_NAME%
+          Write-Host "Command: $($psi.FileName) $($psi.Arguments)"
 
-          if exist "%INSTALLER_PATH%" (
-            echo SUCCESS: Installer created at %INSTALLER_PATH%
-            for %%A in ("%INSTALLER_PATH%") do echo Size: %%~zA bytes
-          ) else (
-            echo ERROR: Installer not found at %INSTALLER_PATH%
-            echo Output directory contents:
-            dir /b "%OUTPUT_DIR%"
-            exit /b 1
-          )
+          $proc = [System.Diagnostics.Process]::Start($psi)
+          $stdout = $proc.StandardOutput.ReadToEnd()
+          $stderr = $proc.StandardError.ReadToEnd()
+          $proc.WaitForExit()
+
+          Write-Host "=== ISCC stdout ==="
+          Write-Host $stdout
+          if ($stderr) {
+            Write-Host "=== ISCC stderr ==="
+            Write-Host $stderr
+          }
+          Write-Host "ISCC exit code: $($proc.ExitCode)"
+
+          if ($proc.ExitCode -ne 0) {
+            throw "ISCC failed with exit code $($proc.ExitCode)"
+          }
+
+          $installerName = "rftranslator-$appVer-setup.exe"
+          $installerPath = Join-Path $outputDir $installerName
+          if (Test-Path $installerPath) {
+            Write-Host "SUCCESS: Installer created at $installerPath"
+            Write-Host "Size: $((Get-Item $installerPath).Length) bytes"
+          } else {
+            throw "Installer not found at $installerPath"
+          }
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
