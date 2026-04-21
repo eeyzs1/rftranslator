@@ -61,52 +61,73 @@ jobs:
         run: |
           $installerUrl = "https://jrsoftware.org/download.php/is.exe"
           $installerPath = "$env:TEMP\is.exe"
-          Write-Host "Downloading Inno Setup..."
-          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+          Write-Host "Downloading Inno Setup from $installerUrl..."
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+          Write-Host "Download complete. File size: $((Get-Item $installerPath).Length) bytes"
           Write-Host "Installing Inno Setup..."
-          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /NORESTART /SP-" -Wait
+          $proc = Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SP-" -Wait -PassThru
+          Write-Host "Installer exit code: $($proc.ExitCode)"
           $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (Test-Path $isccPath) {
             Write-Host "Inno Setup installed successfully at: $isccPath"
           } else {
             Write-Host "ERROR: ISCC.exe not found at expected path"
             Get-ChildItem "C:\Program Files (x86)\Inno Setup 6" -ErrorAction SilentlyContinue
+            Get-ChildItem "C:\Program Files (x86)" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Inno*" }
             exit 1
           }
 
-      - name: Compile Inno Setup installer
+      - name: Generate ISS file from template
         shell: pwsh
         run: |
           $version = "${{ steps.prep.outputs.VERSION }}"
-          $sourceDir = "${{ steps.prep.outputs.BUILD_DIR }}"
+          $sourceDir = '${{ steps.prep.outputs.BUILD_DIR }}'
           $outputDir = "${{ github.workspace }}\tools\installer\output"
           New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
           $templatePath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
           $issPath = "${{ github.workspace }}\tools\installer\build.iss"
 
-          $content = Get-Content -Path $templatePath -Raw
+          Write-Host "Reading template from: $templatePath"
+          if (-not (Test-Path $templatePath)) {
+            Write-Host "ERROR: Template file not found at: $templatePath"
+            exit 1
+          }
+
+          $content = [System.IO.File]::ReadAllText($templatePath)
+          Write-Host "Template read successfully. Length: $($content.Length) chars"
+
           $content = $content.Replace('__VERSION__', $version)
           $content = $content.Replace('__SOURCEDIR__', $sourceDir)
           $content = $content.Replace('__OUTPUTDIR__', $outputDir)
-          [System.IO.File]::WriteAllText($issPath, $content, [System.Text.UTF8Encoding]::new($false))
+
+          $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+          [System.IO.File]::WriteAllText($issPath, $content, $utf8NoBom)
 
           Write-Host "Generated ISS file at: $issPath"
+          Write-Host "Version: $version"
           Write-Host "SourceDir: $sourceDir"
           Write-Host "OutputDir: $outputDir"
-          Write-Host "AppVersion: $version"
-          Write-Host "ISS file content:"
-          Get-Content $issPath | ForEach-Object { Write-Host $_ }
+          Write-Host "=== ISS file content ==="
+          Get-Content $issPath | Write-Host
+          Write-Host "=== End of ISS file ==="
 
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          Write-Host "Running ISCC..."
-          & $isccPath $issPath
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: ISCC failed with exit code: $LASTEXITCODE"
-            exit 1
-          }
-          Write-Host "ISCC completed successfully"
+      - name: Compile Inno Setup installer
+        shell: cmd
+        run: |
+          echo Running ISCC...
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "${{ github.workspace }}\tools\installer\build.iss"
+          if %ERRORLEVEL% NEQ 0 (
+            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
+            exit /b 1
+          )
+          echo ISCC completed successfully
 
+      - name: Verify installer
+        shell: pwsh
+        run: |
+          $version = "${{ steps.prep.outputs.VERSION }}"
+          $outputDir = "${{ github.workspace }}\tools\installer\output"
           $setupExe = Join-Path $outputDir "rftranslator-$version-setup.exe"
           if (Test-Path $setupExe) {
             Write-Host "Installer created successfully: $setupExe"
