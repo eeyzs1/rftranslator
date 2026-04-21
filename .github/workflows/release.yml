@@ -94,30 +94,44 @@ jobs:
           Write-Host "OutputDir:  $outputDir"
           Write-Host "ISS file:   $issPath"
           Write-Host "ISCC path:  $isccPath"
+          Write-Host "ISCC exists: $(Test-Path $isccPath)"
+          Write-Host "Source exists: $(Test-Path $srcDir)"
+          Write-Host "ISS exists: $(Test-Path $issPath)"
 
-          if (-not (Test-Path $isccPath)) { throw "ISCC.exe not found at $isccPath" }
-          if (-not (Test-Path $srcDir)) { throw "Source directory not found: $srcDir" }
-          if (-not (Test-Path $issPath)) { throw "ISS file not found: $issPath" }
+          if (-not (Test-Path $isccPath)) {
+            Write-Error "ISCC.exe not found at $isccPath"
+            exit 1
+          }
+          if (-not (Test-Path $srcDir)) {
+            Write-Error "Source directory not found: $srcDir"
+            exit 1
+          }
+          if (-not (Test-Path $issPath)) {
+            Write-Error "ISS file not found: $issPath"
+            exit 1
+          }
 
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
           Write-Host "Source directory contents:"
           Get-ChildItem $srcDir | Select-Object -First 10 | ForEach-Object { Write-Host "  $($_.Name)" }
 
-          $issContent = Get-Content $issPath -Raw
-          Write-Host "=== ISS file content (first 500 chars) ==="
-          Write-Host $issContent.Substring(0, [Math]::Min(500, $issContent.Length))
-
           Write-Host "Running ISCC..."
           $psi = New-Object System.Diagnostics.ProcessStartInfo
           $psi.FileName = $isccPath
-          $psi.Arguments = "/DAppVersion=$appVer /DSourceDir=""$srcDir"" /DOutputDir=""$outputDir"" ""$issPath"""
+          $psi.ArgumentList.Add("/DAppVersion=$appVer")
+          $psi.ArgumentList.Add("/DSourceDir=$srcDir")
+          $psi.ArgumentList.Add("/DOutputDir=$outputDir")
+          $psi.ArgumentList.Add($issPath)
           $psi.UseShellExecute = $false
           $psi.RedirectStandardOutput = $true
           $psi.RedirectStandardError = $true
           $psi.CreateNoWindow = $true
 
-          Write-Host "Command: $($psi.FileName) $($psi.Arguments)"
+          Write-Host "Command: $($psi.FileName)"
+          foreach ($arg in $psi.ArgumentList) {
+            Write-Host "  Arg: $arg"
+          }
 
           $proc = [System.Diagnostics.Process]::Start($psi)
           $stdout = $proc.StandardOutput.ReadToEnd()
@@ -133,7 +147,8 @@ jobs:
           Write-Host "ISCC exit code: $($proc.ExitCode)"
 
           if ($proc.ExitCode -ne 0) {
-            throw "ISCC failed with exit code $($proc.ExitCode)"
+            Write-Error "ISCC failed with exit code $($proc.ExitCode)"
+            exit 1
           }
 
           $installerName = "rftranslator-$appVer-setup.exe"
@@ -142,7 +157,9 @@ jobs:
             Write-Host "SUCCESS: Installer created at $installerPath"
             Write-Host "Size: $((Get-Item $installerPath).Length) bytes"
           } else {
-            throw "Installer not found at $installerPath"
+            Write-Error "Installer not found at $installerPath"
+            Get-ChildItem $outputDir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
+            exit 1
           }
 
       - name: Upload Installer to Release
