@@ -5,20 +5,18 @@
 #define AppExeName "rftranslator.exe"
 #define AppPublisher "rftranslator"
 #define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
-#define VersionStr GetEnv("APP_VERSION")
-#define SourceDir GetEnv("BUILD_DIR")
 
 [Setup]
 AppId={#AppGUID}
 AppName={#AppName}
-AppVersion={#VersionStr}
-AppVerName={#AppName} {#VersionStr}
+AppVersion={#AppVersion}
+AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
 OutputDir=.\output
-OutputBaseFilename={#AppName}-{#VersionStr}-setup
+OutputBaseFilename={#AppName}-{#AppVersion}-setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -30,9 +28,6 @@ CreateAppDir=yes
 DisableWelcomePage=no
 DisableDirPage=no
 DisableProgramGroupPage=no
-LicenseFile=
-InfoBeforeFile=
-InfoAfterFile=
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -42,7 +37,7 @@ Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.i
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: DirExists('{#SourceDir}')
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -56,7 +51,7 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGU
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "UninstallString"; ValueData: """{uninstallexe}"" /_?=""{app}"""
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "QuietUninstallString"; ValueData: """{uninstallexe}"" /silent /_?=""{app}"""
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "InstallLocation"; ValueData: "{app}"
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#VersionStr}"
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "Publisher"; ValueData: "{#AppPublisher}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "EstimatedSize"; ValueData: 0; Flags: dontcreatekey
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoModify"; ValueData: 1
@@ -65,16 +60,3 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGU
 ; Register app path for Windows Search integration
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExeName}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"
-
-[Code]
-function InitializeSetup(): Boolean;
-var
-  BuildDir: String;
-begin
-  BuildDir := ExpandConstant('{#SourceDir}');
-  if not DirExists(BuildDir) then begin
-    MsgBox(Format('Build directory not found: %s'#13#10'Please run "flutter build windows --release" first.', [BuildDir]), mbError, MB_OK);
-    Result := False;
-  end else
-    Result := True;
-end;

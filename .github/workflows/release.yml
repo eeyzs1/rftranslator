@@ -28,6 +28,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Build Windows (Release)
         run: flutter build windows --release
 
@@ -37,7 +40,7 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}" -replace '^v', ''
           $baseName = "rftranslator-$tag"
-          $buildDir = "build\windows\x64\runner\Release"
+          $buildDir = "${{ github.workspace }}\build\windows\x64\runner\Release"
           echo "VERSION=$tag" >> $env:GITHUB_OUTPUT
           echo "BASE_NAME=$baseName" >> $env:GITHUB_OUTPUT
           echo "BUILD_DIR=$buildDir" >> $env:GITHUB_OUTPUT
@@ -54,11 +57,9 @@ jobs:
 
       - name: Build Inno Setup installer
         shell: pwsh
-        env:
-          APP_VERSION: ${{ steps.prep.outputs.VERSION }}
-          BUILD_DIR: ${{ steps.prep.outputs.BUILD_DIR }}
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O+ /Qp "tools/installer/rftranslator.iss"
+          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion="${{ steps.prep.outputs.VERSION }}" /DSourceDir="${{ steps.prep.outputs.BUILD_DIR }}" "$issPath"
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
