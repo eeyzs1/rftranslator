@@ -57,8 +57,24 @@ jobs:
           generate_release_notes: true
 
       - name: Install Inno Setup
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
-        id: inno_setup
+        shell: pwsh
+        run: |
+          Write-Host "Installing Inno Setup via Chocolatey..."
+          choco install innosetup --yes --no-progress
+          Write-Host "Chocolatey install completed with exit code: $LASTEXITCODE"
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $isccPath) {
+            Write-Host "ISCC.exe found at: $isccPath"
+            $fileInfo = Get-Item $isccPath
+            Write-Host "File size: $($fileInfo.Length) bytes"
+            Write-Host "Last modified: $($fileInfo.LastWriteTime)"
+          } else {
+            Write-Host "ISCC.exe not found at expected path. Searching..."
+            Get-ChildItem "C:\Program Files" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+            Get-ChildItem "C:\Program Files (x86)" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+            Write-Host "ERROR: ISCC.exe not found anywhere"
+            exit 1
+          }
 
       - name: Generate ISS file from template
         shell: pwsh
