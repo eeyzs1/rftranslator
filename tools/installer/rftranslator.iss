@@ -5,15 +5,9 @@
 #define AppExeName "rftranslator.exe"
 #define AppPublisher "rftranslator"
 #define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}"
-#ifndef AppVersion
-  #define AppVersion "0.0.0"
-#endif
-#ifndef SourceDir
-  #define SourceDir ".\build"
-#endif
-#ifndef OutputDir
-  #define OutputDir ".\output"
-#endif
+#define AppVersion "__VERSION__"
+#define SourceDir "__SOURCEDIR__"
+#define OutputDir "__OUTPUTDIR__"
 
 [Setup]
 AppId={#AppGUID}
@@ -63,6 +57,5 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGU
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoModify"; ValueData: 1
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoRepair"; ValueData: 1
 
-; Register app path for Windows Search integration
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExeName}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"

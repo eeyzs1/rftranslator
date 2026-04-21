@@ -82,78 +82,30 @@ jobs:
           $outputDir = "${{ github.workspace }}\tools\installer\output"
           New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
-          $issContent = @"
-          #define AppName "rftranslator"
-          #define AppExeName "rftranslator.exe"
-          #define AppPublisher "rftranslator"
-          #define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}"
-          #define AppVersion "$version"
-          #define SourceDir "$sourceDir"
-          #define OutputDir "$outputDir"
-
-          [Setup]
-          AppId={#AppGUID}
-          AppName={#AppName}
-          AppVersion={#AppVersion}
-          AppVerName={#AppName} {#AppVersion}
-          AppPublisher={#AppPublisher}
-          DefaultDirName={autopf}\{#AppName}
-          DefaultGroupName={#AppName}
-          AllowNoIcons=yes
-          OutputDir={#OutputDir}
-          OutputBaseFilename={#AppName}-{#AppVersion}-setup
-          Compression=lzma2/ultra64
-          SolidCompression=yes
-          WizardStyle=modern
-          PrivilegesRequiredOverridesAllowed=dialog
-          UninstallDisplayIcon={app}\{#AppExeName}
-          CreateAppDir=yes
-          DisableWelcomePage=no
-          DisableDirPage=no
-          DisableProgramGroupPage=no
-
-          [Languages]
-          Name: "english"; MessagesFile: "compiler:Default.isl"
-          Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
-
-          [Tasks]
-          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-
-          [Files]
-          Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-          [Icons]
-          Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
-          Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
-
-          [Run]
-          Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-          [Registry]
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayName"; ValueData: "{#AppName}"
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "UninstallString"; ValueData: """{uninstallexe}"" /_?=""{app}"""
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "QuietUninstallString"; ValueData: """{uninstallexe}"" /silent /_?=""{app}"""
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "InstallLocation"; ValueData: "{app}"
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "Publisher"; ValueData: "{#AppPublisher}"
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoModify"; ValueData: 1
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoRepair"; ValueData: 1
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExeName}"
-          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"
-          "@
-
+          $templatePath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
           $issPath = "${{ github.workspace }}\tools\installer\build.iss"
-          $issContent | Out-File -FilePath $issPath -Encoding UTF8
+
+          $content = Get-Content -Path $templatePath -Raw
+          $content = $content.Replace('__VERSION__', $version)
+          $content = $content.Replace('__SOURCEDIR__', $sourceDir)
+          $content = $content.Replace('__OUTPUTDIR__', $outputDir)
+          [System.IO.File]::WriteAllText($issPath, $content, [System.Text.UTF8Encoding]::new($false))
 
           Write-Host "Generated ISS file at: $issPath"
           Write-Host "SourceDir: $sourceDir"
           Write-Host "OutputDir: $outputDir"
           Write-Host "AppVersion: $version"
+          Write-Host "ISS file content:"
+          Get-Content $issPath | ForEach-Object { Write-Host $_ }
 
           $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           Write-Host "Running ISCC..."
           & $isccPath $issPath
-          Write-Host "ISCC completed with exit code: $LASTEXITCODE"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: ISCC failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "ISCC completed successfully"
 
           $setupExe = Join-Path $outputDir "rftranslator-$version-setup.exe"
           if (Test-Path $setupExe) {
