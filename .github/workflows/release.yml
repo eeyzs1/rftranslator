@@ -56,74 +56,11 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          $installerUrl = "https://jrsoftware.org/download.php/is.exe"
-          $installerPath = Join-Path $env:RUNNER_TEMP "innosetup.exe"
-          Write-Host "Downloading Inno Setup from $installerUrl..."
-          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -MaximumRetryCount 3
-          Write-Host "Downloaded. Size: $((Get-Item $installerPath).Length) bytes"
-          Write-Host "Installing Inno Setup silently..."
-          $proc = Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES","/SP-","/LOG" -Wait -PassThru
-          Write-Host "Installer exit code: $($proc.ExitCode)"
-          if ($proc.ExitCode -ne 0) {
-            Write-Error "Inno Setup installer failed with exit code $($proc.ExitCode)"
-            exit 1
-          }
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $isccPath)) {
-            Write-Error "ISCC.exe not found at $isccPath"
-            exit 1
-          }
-          Write-Host "ISCC.exe found at $isccPath"
-
-      - name: Build Inno Setup installer
-        shell: cmd
-        run: |
-          set ISCC="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          set APPVER=${{ steps.prep.outputs.VERSION }}
-          set SRCDIR=${{ steps.prep.outputs.BUILD_DIR }}
-          set OUTDIR=${{ github.workspace }}\tools\installer\output
-          set ISSPATH=${{ github.workspace }}\tools\installer\rftranslator.iss
-
-          echo AppVersion: %APPVER%
-          echo SourceDir:  %SRCDIR%
-          echo OutputDir:  %OUTDIR%
-          echo ISS file:   %ISSPATH%
-
-          if not exist %ISCC% (
-            echo ERROR: ISCC.exe not found
-            exit /b 1
-          )
-          if not exist "%SRCDIR%" (
-            echo ERROR: Source dir not found
-            exit /b 1
-          )
-          if not exist "%ISSPATH%" (
-            echo ERROR: ISS file not found
-            exit /b 1
-          )
-
-          if not exist "%OUTDIR%" mkdir "%OUTDIR%"
-
-          echo Running ISCC...
-          %ISCC% /DAppVersion=%APPVER% /DSourceDir="%SRCDIR%" /DOutputDir="%OUTDIR%" "%ISSPATH%"
-
-          if %ERRORLEVEL% neq 0 (
-            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
-            exit /b 1
-          )
-
-          set INSTALLER=%OUTDIR%\rftranslator-%APPVER%-setup.exe
-          if exist "%INSTALLER%" (
-            echo SUCCESS: Installer created at %INSTALLER%
-          ) else (
-            echo ERROR: Installer not found at %INSTALLER%
-            dir "%OUTDIR%"
-            exit /b 1
-          )
+      - name: Compile Inno Setup installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
+        with:
+          path: tools/installer/rftranslator.iss
+          options: /DAppVersion=${{ steps.prep.outputs.VERSION }} /DSourceDir=${{ steps.prep.outputs.BUILD_DIR }} /DOutputDir=${{ github.workspace }}\tools\installer\output
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
