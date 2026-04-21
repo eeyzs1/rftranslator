@@ -94,60 +94,30 @@ jobs:
           Write-Host "OutputDir:  $outputDir"
           Write-Host "ISS file:   $issPath"
           Write-Host "ISCC path:  $isccPath"
-          Write-Host "ISCC exists: $(Test-Path $isccPath)"
-          Write-Host "Source exists: $(Test-Path $srcDir)"
-          Write-Host "ISS exists: $(Test-Path $issPath)"
 
-          if (-not (Test-Path $isccPath)) {
-            Write-Error "ISCC.exe not found at $isccPath"
-            exit 1
-          }
-          if (-not (Test-Path $srcDir)) {
-            Write-Error "Source directory not found: $srcDir"
-            exit 1
-          }
-          if (-not (Test-Path $issPath)) {
-            Write-Error "ISS file not found: $issPath"
-            exit 1
-          }
+          if (-not (Test-Path $isccPath)) { Write-Error "ISCC.exe not found"; exit 1 }
+          if (-not (Test-Path $srcDir)) { Write-Error "Source directory not found: $srcDir"; exit 1 }
+          if (-not (Test-Path $issPath)) { Write-Error "ISS file not found: $issPath"; exit 1 }
 
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-          Write-Host "Source directory contents:"
-          Get-ChildItem $srcDir | Select-Object -First 10 | ForEach-Object { Write-Host "  $($_.Name)" }
+          $tempIss = Join-Path $env:RUNNER_TEMP "build.iss"
+          @"
+          #define AppVersion "$appVer"
+          #define SourceDir "$srcDir"
+          #define OutputDir "$outputDir"
+          #include "$issPath"
+          "@ | Set-Content -Path $tempIss -Encoding UTF8
+
+          Write-Host "Created temp ISS: $tempIss"
+          Write-Host "--- Temp ISS content ---"
+          Get-Content $tempIss | ForEach-Object { Write-Host $_ }
+          Write-Host "--- End temp ISS ---"
 
           Write-Host "Running ISCC..."
-          $psi = New-Object System.Diagnostics.ProcessStartInfo
-          $psi.FileName = $isccPath
-          $psi.ArgumentList.Add("/DAppVersion=$appVer")
-          $psi.ArgumentList.Add("/DSourceDir=$srcDir")
-          $psi.ArgumentList.Add("/DOutputDir=$outputDir")
-          $psi.ArgumentList.Add($issPath)
-          $psi.UseShellExecute = $false
-          $psi.RedirectStandardOutput = $true
-          $psi.RedirectStandardError = $true
-          $psi.CreateNoWindow = $true
-
-          Write-Host "Command: $($psi.FileName)"
-          foreach ($arg in $psi.ArgumentList) {
-            Write-Host "  Arg: $arg"
-          }
-
-          $proc = [System.Diagnostics.Process]::Start($psi)
-          $stdout = $proc.StandardOutput.ReadToEnd()
-          $stderr = $proc.StandardError.ReadToEnd()
-          $proc.WaitForExit()
-
-          Write-Host "=== ISCC stdout ==="
-          Write-Host $stdout
-          if ($stderr) {
-            Write-Host "=== ISCC stderr ==="
-            Write-Host $stderr
-          }
-          Write-Host "ISCC exit code: $($proc.ExitCode)"
-
-          if ($proc.ExitCode -ne 0) {
-            Write-Error "ISCC failed with exit code $($proc.ExitCode)"
+          & $isccPath $tempIss
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ISCC failed with exit code $LASTEXITCODE"
             exit 1
           }
 
