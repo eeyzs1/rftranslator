@@ -82,7 +82,6 @@ jobs:
       - name: Build Inno Setup installer
         shell: pwsh
         run: |
-          Write-Host "=== Step started ==="
           $appVer = "${{ steps.prep.outputs.VERSION }}"
           $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}"
           $outputDir = "${{ github.workspace }}\tools\installer\output"
@@ -93,42 +92,42 @@ jobs:
           Write-Host "SourceDir:  $srcDir"
           Write-Host "OutputDir:  $outputDir"
           Write-Host "ISS file:   $issPath"
-          Write-Host "ISCC path:  $isccPath"
-          Write-Host "ISCC exists: $(Test-Path $isccPath)"
-          Write-Host "Source exists: $(Test-Path $srcDir)"
-          Write-Host "ISS exists: $(Test-Path $issPath)"
 
-          if (-not (Test-Path $isccPath)) {
-            Write-Error "ISCC.exe not found at $isccPath"
-            exit 1
-          }
-          if (-not (Test-Path $srcDir)) {
-            Write-Error "Source directory not found: $srcDir"
-            exit 1
-          }
-          if (-not (Test-Path $issPath)) {
-            Write-Error "ISS file not found: $issPath"
-            exit 1
-          }
+          if (-not (Test-Path $isccPath)) { Write-Error "ISCC.exe not found"; exit 1 }
+          if (-not (Test-Path $srcDir)) { Write-Error "Source dir not found"; exit 1 }
+          if (-not (Test-Path $issPath)) { Write-Error "ISS file not found"; exit 1 }
 
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
-          $tempIss = Join-Path $env:RUNNER_TEMP "build.iss"
-          Set-Content -Path $tempIss -Value "#define AppVersion `"$appVer`"" -Encoding UTF8
-          Add-Content -Path $tempIss -Value "#define SourceDir `"$srcDir`"" -Encoding UTF8
-          Add-Content -Path $tempIss -Value "#define OutputDir `"$outputDir`"" -Encoding UTF8
-          Add-Content -Path $tempIss -Value "#include `"$issPath`"" -Encoding UTF8
-
-          Write-Host "Created temp ISS: $tempIss"
-          Write-Host "--- Temp ISS content ---"
-          Get-Content $tempIss | ForEach-Object { Write-Host $_ }
-          Write-Host "--- End temp ISS ---"
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = $isccPath
+          $psi.ArgumentList.Add("/DAppVersion=$appVer")
+          $psi.ArgumentList.Add("/DSourceDir=$srcDir")
+          $psi.ArgumentList.Add("/DOutputDir=$outputDir")
+          $psi.ArgumentList.Add($issPath)
+          $psi.UseShellExecute = $false
+          $psi.RedirectStandardOutput = $true
+          $psi.RedirectStandardError = $true
 
           Write-Host "Running ISCC..."
-          & $isccPath $tempIss
-          Write-Host "ISCC exit code: $LASTEXITCODE"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "ISCC failed with exit code $LASTEXITCODE"
+          $process = [System.Diagnostics.Process]::Start($psi)
+          $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+          $stderrTask = $process.StandardError.ReadToEndAsync()
+          $process.WaitForExit()
+
+          $stdout = $stdoutTask.Result
+          $stderr = $stderrTask.Result
+
+          Write-Host "=== ISCC Output ==="
+          Write-Host $stdout
+          if ($stderr) {
+            Write-Host "=== ISCC Errors ==="
+            Write-Host $stderr
+          }
+
+          Write-Host "ISCC exit code: $($process.ExitCode)"
+          if ($process.ExitCode -ne 0) {
+            Write-Error "ISCC failed with exit code $($process.ExitCode)"
             exit 1
           }
 
