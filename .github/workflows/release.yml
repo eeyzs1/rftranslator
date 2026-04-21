@@ -80,67 +80,50 @@ jobs:
           Write-Host "ISCC.exe found at $isccPath"
 
       - name: Build Inno Setup installer
-        shell: pwsh
+        shell: cmd
         run: |
-          $appVer = "${{ steps.prep.outputs.VERSION }}"
-          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}"
-          $outputDir = "${{ github.workspace }}\tools\installer\output"
-          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          set ISCC="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          set APPVER=${{ steps.prep.outputs.VERSION }}
+          set SRCDIR=${{ steps.prep.outputs.BUILD_DIR }}
+          set OUTDIR=${{ github.workspace }}\tools\installer\output
+          set ISSPATH=${{ github.workspace }}\tools\installer\rftranslator.iss
 
-          Write-Host "AppVersion: $appVer"
-          Write-Host "SourceDir:  $srcDir"
-          Write-Host "OutputDir:  $outputDir"
-          Write-Host "ISS file:   $issPath"
+          echo AppVersion: %APPVER%
+          echo SourceDir:  %SRCDIR%
+          echo OutputDir:  %OUTDIR%
+          echo ISS file:   %ISSPATH%
 
-          if (-not (Test-Path $isccPath)) { Write-Error "ISCC.exe not found"; exit 1 }
-          if (-not (Test-Path $srcDir)) { Write-Error "Source dir not found"; exit 1 }
-          if (-not (Test-Path $issPath)) { Write-Error "ISS file not found"; exit 1 }
+          if not exist %ISCC% (
+            echo ERROR: ISCC.exe not found
+            exit /b 1
+          )
+          if not exist "%SRCDIR%" (
+            echo ERROR: Source dir not found
+            exit /b 1
+          )
+          if not exist "%ISSPATH%" (
+            echo ERROR: ISS file not found
+            exit /b 1
+          )
 
-          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          if not exist "%OUTDIR%" mkdir "%OUTDIR%"
 
-          $psi = New-Object System.Diagnostics.ProcessStartInfo
-          $psi.FileName = $isccPath
-          $psi.ArgumentList.Add("/DAppVersion=$appVer")
-          $psi.ArgumentList.Add("/DSourceDir=$srcDir")
-          $psi.ArgumentList.Add("/DOutputDir=$outputDir")
-          $psi.ArgumentList.Add($issPath)
-          $psi.UseShellExecute = $false
-          $psi.RedirectStandardOutput = $true
-          $psi.RedirectStandardError = $true
+          echo Running ISCC...
+          %ISCC% /DAppVersion=%APPVER% /DSourceDir="%SRCDIR%" /DOutputDir="%OUTDIR%" "%ISSPATH%"
 
-          Write-Host "Running ISCC..."
-          $process = [System.Diagnostics.Process]::Start($psi)
-          $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-          $stderrTask = $process.StandardError.ReadToEndAsync()
-          $process.WaitForExit()
+          if %ERRORLEVEL% neq 0 (
+            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
+            exit /b 1
+          )
 
-          $stdout = $stdoutTask.Result
-          $stderr = $stderrTask.Result
-
-          Write-Host "=== ISCC Output ==="
-          Write-Host $stdout
-          if ($stderr) {
-            Write-Host "=== ISCC Errors ==="
-            Write-Host $stderr
-          }
-
-          Write-Host "ISCC exit code: $($process.ExitCode)"
-          if ($process.ExitCode -ne 0) {
-            Write-Error "ISCC failed with exit code $($process.ExitCode)"
-            exit 1
-          }
-
-          $installerName = "rftranslator-$appVer-setup.exe"
-          $installerPath = Join-Path $outputDir $installerName
-          if (Test-Path $installerPath) {
-            Write-Host "SUCCESS: Installer created at $installerPath"
-            Write-Host "Size: $((Get-Item $installerPath).Length) bytes"
-          } else {
-            Write-Error "Installer not found at $installerPath"
-            Get-ChildItem $outputDir -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
-            exit 1
-          }
+          set INSTALLER=%OUTDIR%\rftranslator-%APPVER%-setup.exe
+          if exist "%INSTALLER%" (
+            echo SUCCESS: Installer created at %INSTALLER%
+          ) else (
+            echo ERROR: Installer not found at %INSTALLER%
+            dir "%OUTDIR%"
+            exit /b 1
+          )
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
