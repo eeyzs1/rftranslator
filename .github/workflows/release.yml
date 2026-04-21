@@ -56,6 +56,25 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $installerUrl = "https://jrsoftware.org/download.php/is.exe"
+          $installerPath = Join-Path $env:RUNNER_TEMP "innosetup.exe"
+          Write-Host "Downloading Inno Setup from $installerUrl..."
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -MaximumRetryCount 3
+          Write-Host "Installing Inno Setup..."
+          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES","/SP-" -Wait
+          Write-Host "Inno Setup installed."
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $isccPath) {
+            Write-Host "ISCC.exe found at: $isccPath"
+          } else {
+            Write-Error "ISCC.exe not found at expected path!"
+            Get-ChildItem "C:\Program Files (x86)" -Directory -Filter "Inno*" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found dir: $($_.FullName)" }
+            exit 1
+          }
+
       - name: Prepare Inno Setup script
         id: iss
         shell: pwsh
@@ -76,13 +95,19 @@ jobs:
           [System.IO.File]::WriteAllText($modifiedPath, $content, (New-Object System.Text.UTF8Encoding $false))
 
           Write-Host "Modified ISS file created at: $modifiedPath"
+          Write-Host "Content preview (first 20 lines):"
+          Get-Content $modifiedPath -TotalCount 20 | Write-Host
           echo "ISS_PATH=$modifiedPath" >> $env:GITHUB_OUTPUT
 
       - name: Build Inno Setup installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
-        with:
-          path: ${{ steps.iss.outputs.ISS_PATH }}
-          install_latest: true
+        shell: pwsh
+        run: |
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          $issPath = "${{ steps.iss.outputs.ISS_PATH }}"
+          Write-Host "Running ISCC..."
+          Write-Host "  ISCC: $isccPath"
+          Write-Host "  ISS:  $issPath"
+          & $isccPath $issPath
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
