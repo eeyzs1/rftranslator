@@ -23,7 +23,16 @@ jobs:
 
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
-      - run: dart analyze --no-fatal-warnings
+      - name: Analyze
+        run: dart analyze --no-fatal-warnings 2>&1 | tee analyze-output.txt
+        continue-on-error: true
+      - name: Check for errors
+        run: |
+          if grep -q "error •" analyze-output.txt; then
+            echo "Found errors in analysis:"
+            grep "error •" analyze-output.txt
+            exit 1
+          fi
       - run: flutter test --reporter=github
 
   build-windows-check:
