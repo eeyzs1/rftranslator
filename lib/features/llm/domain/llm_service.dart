@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:rftranslator/features/llm/data/datasources/llama_cpp_datasource.dart';
 
@@ -52,13 +53,18 @@ class LlmService extends _$LlmService {
     _modelPath = modelPath;
     try {
       if (_datasource != null && dataSource != null && _datasource != dataSource) {
+        debugPrint('[LLM] Disposing old datasource: ${_datasource.runtimeType}');
         await _datasource!.dispose();
+        debugPrint('[LLM] Old datasource disposed');
       }
       _datasource = dataSource ?? LlamaCppDataSource();
+      debugPrint('[LLM] Loading model with datasource: ${_datasource.runtimeType}, path: $modelPath');
       await _datasource!.loadModel(modelPath);
+      debugPrint('[LLM] Model loaded successfully');
       _isReady = true;
       state = LlmStatus.ready;
     } catch (e) {
+      debugPrint('[LLM] Model loading failed: $e');
       _isReady = false;
       state = LlmStatus.error;
       rethrow;

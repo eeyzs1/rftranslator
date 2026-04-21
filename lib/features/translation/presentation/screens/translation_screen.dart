@@ -359,13 +359,18 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
       } else {
         children.add(_buildDictionaryResult(l10n, state));
       }
-    } else if (state.targetText.isNotEmpty) {
+    } else if (state.targetText.isNotEmpty && !state.hasLLMResult) {
       children.add(_buildSimpleResult(l10n, state));
     }
 
     if (state.isTranslatingWithLLM) {
       children.add(const SizedBox(height: 12));
-      children.add(_buildLLMLoadingCard(l10n));
+      children.add(_buildLLMLoadingCard(l10n, state));
+    } else if (state.hasLLMResult && state.modelResults.isNotEmpty) {
+      for (int i = 0; i < state.modelResults.length; i++) {
+        children.add(const SizedBox(height: 12));
+        children.add(_buildModelResultCard(l10n, state.modelResults[i]));
+      }
     } else if (state.hasLLMResult && state.llmTranslation != null) {
       children.add(const SizedBox(height: 12));
       children.add(_buildLLMResultCard(l10n, state));
@@ -738,7 +743,12 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
     );
   }
 
-  Widget _buildLLMLoadingCard(AppLocalizations l10n) {
+  Widget _buildLLMLoadingCard(AppLocalizations l10n, TranslationState state) {
+    final modelName = state.translatingModelName ?? l10n.sourceOpusMt;
+    final progress = state.translatingModelTotal > 1
+        ? ' (${state.translatingModelIndex}/${state.translatingModelTotal})'
+        : '';
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -746,22 +756,110 @@ class _TranslationScreenState extends ConsumerState<TranslationScreen> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '${l10n.sourceOpusMt} ${l10n.translating}...',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+            Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '$modelName ${l10n.translating}...$progress',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            if (state.translatingModelTotal > 1) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: state.translatingModelIndex / state.translatingModelTotal,
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModelResultCard(AppLocalizations l10n, ModelTranslationResult modelResult) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      l10n.translationResult,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        modelResult.modelName,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: modelResult.targetText));
+                        AppToast.show(context, l10n.copiedToClipboard);
+                      },
+                      icon: const Icon(Icons.copy),
+                      tooltip: l10n.copy,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SelectableText(
+                modelResult.targetText,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
           ],
         ),

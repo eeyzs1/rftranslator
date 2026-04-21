@@ -104,6 +104,14 @@ unlinked_spec.ds
 **/linux/flutter/generated_plugin_registrant.h
 **/linux/flutter/generated_plugins.cmake
 
+# CTranslate2 build directories
+_ct2_build_android/
+_ct2_build_win/
+
+# Native libraries (built locally, not tracked)
+windows/libs/
+android/app/src/main/jniLibs/
+
 # Coverage
 coverage/
 

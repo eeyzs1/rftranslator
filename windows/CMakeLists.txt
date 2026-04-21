@@ -106,3 +106,14 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Copy CTranslate2 native libraries from windows/libs/ to the build output.
+set(CT2_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
+if(EXISTS "${CT2_LIBS_DIR}")
+  file(GLOB CT2_LIBS "${CT2_LIBS_DIR}/*.dll")
+  if(CT2_LIBS)
+    install(FILES ${CT2_LIBS}
+      DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+      COMPONENT Runtime)
+  endif()
+endif()

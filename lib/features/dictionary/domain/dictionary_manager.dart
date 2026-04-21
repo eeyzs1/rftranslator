@@ -490,7 +490,7 @@ class DictionaryManager extends _$DictionaryManager {
                   sourceLang: meta.sourceLang,
                   targetLang: meta.targetLang,
                   isEnabled: true,
-                ));
+                ),);
               }
             }
           }
@@ -834,7 +834,7 @@ class DictionaryManager extends _$DictionaryManager {
           sourceLang: meta.sourceLang,
           targetLang: meta.targetLang,
           isEnabled: true,
-        ));
+        ),);
 
         final current = Set<String>.from(state.selectedDictionaryIds);
         if (!current.contains(meta.id)) {

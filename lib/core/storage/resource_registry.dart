@@ -141,7 +141,7 @@ class ResourceRegistry {
         .where((e) =>
             e.sourceLang == sourceLang &&
             e.targetLang == targetLang &&
-            (type == null || e.type == type))
+            (type == null || e.type == type),)
         .toList();
   }
 

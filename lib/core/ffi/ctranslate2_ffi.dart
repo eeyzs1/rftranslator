@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io' show Directory, File, Platform;
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 
 final class CTranslator extends Opaque {}
 final class CTranslatorOptions extends Opaque {}
@@ -23,6 +24,15 @@ typedef CTranslatorNewDart = Pointer<CTranslator> Function(
 
 typedef CTranslatorDeleteNative = Void Function(Pointer<CTranslator>);
 typedef CTranslatorDeleteDart = void Function(Pointer<CTranslator>);
+
+typedef CTranslatorSetTargetPrefixNative = Void Function(
+  Pointer<CTranslator> translator,
+  Pointer<Utf8> targetPrefix,
+);
+typedef CTranslatorSetTargetPrefixDart = void Function(
+  Pointer<CTranslator> translator,
+  Pointer<Utf8> targetPrefix,
+);
 
 typedef CTranslatorTranslateBatchNative = Pointer<Pointer<CTranslationResult>> Function(
   Pointer<CTranslator> translator,
@@ -133,12 +143,22 @@ typedef CTranslationOptionsSetReturnScoresDart = void Function(
   bool returnScores,
 );
 
+typedef CTranslationOptionsSetRepetitionPenaltyNative = Void Function(
+  Pointer<CTranslationOptions> options,
+  Float penalty,
+);
+typedef CTranslationOptionsSetRepetitionPenaltyDart = void Function(
+  Pointer<CTranslationOptions> options,
+  double penalty,
+);
+
 class CTranslate2FFI {
   static CTranslate2FFI? _instance;
   static DynamicLibrary? _dylib;
 
   late final CTranslatorNewDart translatorNew;
   late final CTranslatorDeleteDart translatorDelete;
+  late final CTranslatorSetTargetPrefixDart translatorSetTargetPrefix;
   late final CTranslatorTranslateBatchDart translatorTranslateBatch;
   late final CTranslationResultGetOutputDart translationResultGetOutput;
   late final CTranslationResultDeleteDart translationResultDelete;
@@ -156,6 +176,7 @@ class CTranslate2FFI {
   late final CTranslationOptionsSetBeamSizeDart translationOptionsSetBeamSize;
   late final CTranslationOptionsSetMaxDecodingLengthDart translationOptionsSetMaxDecodingLength;
   late final CTranslationOptionsSetReturnScoresDart translationOptionsSetReturnScores;
+  late final CTranslationOptionsSetRepetitionPenaltyDart translationOptionsSetRepetitionPenalty;
 
   CTranslate2FFI._() {
     final lib = _dylib!;
@@ -164,6 +185,9 @@ class CTranslate2FFI {
     );
     translatorDelete = lib.lookupFunction<CTranslatorDeleteNative, CTranslatorDeleteDart>(
       'ctranslate2_Translator_delete',
+    );
+    translatorSetTargetPrefix = lib.lookupFunction<CTranslatorSetTargetPrefixNative, CTranslatorSetTargetPrefixDart>(
+      'ctranslate2_Translator_set_target_prefix',
     );
     translatorTranslateBatch = lib.lookupFunction<CTranslatorTranslateBatchNative, CTranslatorTranslateBatchDart>(
       'ctranslate2_Translator_translate_batch',
@@ -216,6 +240,9 @@ class CTranslate2FFI {
     translationOptionsSetReturnScores = lib.lookupFunction<CTranslationOptionsSetReturnScoresNative, CTranslationOptionsSetReturnScoresDart>(
       'ctranslate2_TranslationOptions_set_return_scores',
     );
+    translationOptionsSetRepetitionPenalty = lib.lookupFunction<CTranslationOptionsSetRepetitionPenaltyNative, CTranslationOptionsSetRepetitionPenaltyDart>(
+      'ctranslate2_TranslationOptions_set_repetition_penalty',
+    );
   }
 
   static CTranslate2FFI? get instance => _instance;
@@ -223,16 +250,26 @@ class CTranslate2FFI {
   static bool get isAvailable => _dylib != null;
 
   static Future<bool> initialize() async {
+    return initializeSync();
+  }
+
+  static bool initializeSync() {
     if (_dylib != null) return true;
 
     try {
       final libPath = _findLibrary();
-      if (libPath == null) return false;
+      if (libPath == null) {
+        debugPrint('[CTranslate2FFI] Library not found in any search path');
+        return false;
+      }
 
+      debugPrint('[CTranslate2FFI] Loading library from: $libPath');
       _dylib = DynamicLibrary.open(libPath);
       _instance = CTranslate2FFI._();
+      debugPrint('[CTranslate2FFI] Library loaded successfully');
       return true;
     } catch (e) {
+      debugPrint('[CTranslate2FFI] Failed to load library: $e');
       return false;
     }
   }
@@ -276,10 +313,13 @@ class CTranslate2Translator {
 
   bool get isLoaded => _ptr != null;
 
-  void load(String modelPath, {int numThreads = 4, String computeType = 'int8'}) {
+  void load(String modelPath, {int numThreads = 4, String computeType = 'float32', String? targetPrefix}) {
+    debugPrint('[CT2 FFI] load() called: modelPath=$modelPath, numThreads=$numThreads, computeType=$computeType, targetPrefix=$targetPrefix');
     if (_ptr != null) {
+      debugPrint('[CT2 FFI] Deleting old translator...');
       _ffi.translatorDelete(_ptr!);
       _ptr = null;
+      debugPrint('[CT2 FFI] Old translator deleted');
     }
 
     final modelPathC = modelPath.toNativeUtf8();
@@ -291,9 +331,19 @@ class CTranslate2Translator {
     _ffi.translatorOptionsSetIntraThreads(options, numThreads);
 
     try {
+      debugPrint('[CT2 FFI] Calling translatorNew...');
       _ptr = _ffi.translatorNew(modelPathC, deviceC, 0, options);
+      debugPrint('[CT2 FFI] translatorNew returned: ptr=$_ptr');
       if (_ptr == nullptr) {
         throw Exception('Failed to create CTranslate2 translator for: $modelPath');
+      }
+
+      if (targetPrefix != null && targetPrefix.isNotEmpty) {
+        debugPrint('[CT2 FFI] Setting target prefix: $targetPrefix');
+        final prefixC = targetPrefix.toNativeUtf8();
+        _ffi.translatorSetTargetPrefix(_ptr!, prefixC);
+        calloc.free(prefixC);
+        debugPrint('[CT2 FFI] Target prefix set');
       }
     } finally {
       calloc.free(modelPathC);
@@ -301,9 +351,10 @@ class CTranslate2Translator {
       calloc.free(computeTypeC);
       _ffi.translatorOptionsDelete(options);
     }
+    debugPrint('[CT2 FFI] load() completed successfully');
   }
 
-  String translate(String text, {int beamSize = 4, int maxLength = 512}) {
+  String translate(String text, {int beamSize = 4, int maxLength = 512, double repetitionPenalty = 1.1}) {
     if (_ptr == null) throw StateError('Translator not loaded');
 
     final inputVec = _ffi.stringVectorNew();
@@ -318,6 +369,7 @@ class CTranslate2Translator {
     _ffi.translationOptionsSetBeamSize(options, beamSize);
     _ffi.translationOptionsSetMaxDecodingLength(options, maxLength);
     _ffi.translationOptionsSetReturnScores(options, false);
+    _ffi.translationOptionsSetRepetitionPenalty(options, repetitionPenalty);
 
     try {
       final results = _ffi.translatorTranslateBatch(_ptr!, inputPtr, 1, options);

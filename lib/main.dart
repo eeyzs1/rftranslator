@@ -10,6 +10,15 @@ import 'package:rftranslator/core/utils/platform_utils.dart';
 import 'package:rftranslator/features/favorites/data/models/favorite_word.dart';
 import 'package:rftranslator/features/history/data/models/history_entry.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
+import 'package:rftranslator/features/llm/data/datasources/ctranslate2_datasource.dart';
+
+class AppWindowListener with WindowListener {
+  @override
+  void onWindowClose() {
+    TranslationIsolateWorker.instance.sendShutdownSignal();
+    windowManager.destroy();
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +44,8 @@ Future<void> main() async {
     await windowManager.setSize(const Size(900, 700));
     await windowManager.setTitle('rftranslator');
     await windowManager.center();
+    windowManager.addListener(AppWindowListener());
+    await windowManager.setPreventClose(true);
   }
 
   runApp(

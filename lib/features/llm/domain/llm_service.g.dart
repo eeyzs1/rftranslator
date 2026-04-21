@@ -6,7 +6,7 @@ part of 'llm_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$llmServiceHash() => r'a5455b1deb50b5cc4b8495792d8422ee4aad5d3d';
+String _$llmServiceHash() => r'f60be8dbee139a2fb5248a7609965660e700a250';
 
 /// See also [LlmService].
 @ProviderFor(LlmService)

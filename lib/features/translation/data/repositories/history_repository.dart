@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:rftranslator/features/translation/data/models/translation_history.dart';
-import 'package:rftranslator/features/translation/domain/entities/language.dart';
 
 class HistoryRepository {
   static const String _boxName = 'translation_history';
