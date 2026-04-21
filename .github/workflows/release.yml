@@ -56,6 +56,11 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+
       - name: Generate ISS file from template
         shell: pwsh
         run: |
@@ -68,9 +73,14 @@ jobs:
           $templatePath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
           $issPath = "${{ github.workspace }}\tools\installer\build.iss"
 
-          Write-Host "Reading template from: $templatePath"
           $content = [System.IO.File]::ReadAllText($templatePath)
-          Write-Host "Template read successfully. Length: $($content.Length) chars"
+
+          $innoSetupDir = "C:\Program Files (x86)\Inno Setup 6"
+          $chineseIsl = Join-Path $innoSetupDir "Languages\ChineseSimplified.isl"
+          if (-not (Test-Path $chineseIsl)) {
+            Write-Host "ChineseSimplified.isl not found, removing from ISS template"
+            $content = $content -replace '(?m)^Name: "chinesesimplified";.*\r?\n', ''
+          }
 
           $content = $content.Replace('__VERSION__', $version)
           $content = $content.Replace('__SOURCEDIR__', $sourceDir)
@@ -80,17 +90,33 @@ jobs:
           [System.IO.File]::WriteAllText($issPath, $content, $utf8NoBom)
 
           Write-Host "Generated ISS file at: $issPath"
-          Write-Host "Version: $version"
-          Write-Host "SourceDir: $sourceDir"
-          Write-Host "OutputDir: $outputDir"
           Write-Host "=== ISS content ==="
           Get-Content $issPath | Write-Host
 
       - name: Compile Inno Setup installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
-        with:
-          path: tools/installer/build.iss
-          install_latest: true
+        shell: pwsh
+        run: |
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          $issPath = "${{ github.workspace }}\tools\installer\build.iss"
+
+          if (-not (Test-Path $isccPath)) {
+            Write-Host "ERROR: ISCC.exe not found at: $isccPath"
+            Get-ChildItem "C:\Program Files (x86)\Inno Setup 6" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+            exit 1
+          }
+
+          if (-not (Test-Path $issPath)) {
+            Write-Host "ERROR: ISS file not found at: $issPath"
+            exit 1
+          }
+
+          Write-Host "Running ISCC..."
+          & $isccPath $issPath
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ISCC failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          Write-Host "ISCC completed successfully"
 
       - name: Verify installer
         shell: pwsh
