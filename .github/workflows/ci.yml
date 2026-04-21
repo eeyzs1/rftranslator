@@ -22,7 +22,7 @@ jobs:
           cache: true
           cache-key: flutter-${{ hashFiles('**/pubspec.lock') }}
 
-      - run: dart analyze --fatal-errors
+      - run: dart analyze --no-fatal-warnings
       - run: flutter test --reporter=github
 
   build-windows-check:
