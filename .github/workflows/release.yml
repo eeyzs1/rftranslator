@@ -57,29 +57,13 @@ jobs:
           generate_release_notes: true
 
       - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          $installerUrl = "https://jrsoftware.org/download.php/is.exe"
-          $installerPath = "$env:TEMP\is.exe"
-          Write-Host "Downloading Inno Setup from $installerUrl..."
-          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
-          Write-Host "Download complete. File size: $((Get-Item $installerPath).Length) bytes"
-          Write-Host "Installing Inno Setup..."
-          $proc = Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT","/NORESTART","/SP-" -Wait -PassThru
-          Write-Host "Installer exit code: $($proc.ExitCode)"
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (Test-Path $isccPath) {
-            Write-Host "Inno Setup installed successfully at: $isccPath"
-          } else {
-            Write-Host "ERROR: ISCC.exe not found at expected path"
-            Get-ChildItem "C:\Program Files (x86)\Inno Setup 6" -ErrorAction SilentlyContinue
-            Get-ChildItem "C:\Program Files (x86)" -ErrorAction SilentlyContinue | Where-Object { $_.Name -like "*Inno*" }
-            exit 1
-          }
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
+        id: inno_setup
 
       - name: Generate ISS file from template
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $version = "${{ steps.prep.outputs.VERSION }}"
           $sourceDir = '${{ steps.prep.outputs.BUILD_DIR }}'
           $outputDir = "${{ github.workspace }}\tools\installer\output"
@@ -89,11 +73,6 @@ jobs:
           $issPath = "${{ github.workspace }}\tools\installer\build.iss"
 
           Write-Host "Reading template from: $templatePath"
-          if (-not (Test-Path $templatePath)) {
-            Write-Host "ERROR: Template file not found at: $templatePath"
-            exit 1
-          }
-
           $content = [System.IO.File]::ReadAllText($templatePath)
           Write-Host "Template read successfully. Length: $($content.Length) chars"
 
@@ -108,20 +87,38 @@ jobs:
           Write-Host "Version: $version"
           Write-Host "SourceDir: $sourceDir"
           Write-Host "OutputDir: $outputDir"
+
+      - name: Compile Inno Setup installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $issPath = "${{ github.workspace }}\tools\installer\build.iss"
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+
+          Write-Host "ISCC path: $isccPath"
+          Write-Host "ISCC exists: $(Test-Path $isccPath)"
+          Write-Host "ISS path: $issPath"
+          Write-Host "ISS exists: $(Test-Path $issPath)"
+
+          if (-not (Test-Path $isccPath)) {
+            Write-Host "Searching for ISCC.exe..."
+            Get-ChildItem "C:\Program Files" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+            Get-ChildItem "C:\Program Files (x86)" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+            Write-Host "ERROR: ISCC.exe not found"
+            exit 1
+          }
+
           Write-Host "=== ISS file content ==="
           Get-Content $issPath | Write-Host
           Write-Host "=== End of ISS file ==="
 
-      - name: Compile Inno Setup installer
-        shell: cmd
-        run: |
-          echo Running ISCC...
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "${{ github.workspace }}\tools\installer\build.iss"
-          if %ERRORLEVEL% NEQ 0 (
-            echo ERROR: ISCC failed with exit code %ERRORLEVEL%
-            exit /b 1
-          )
-          echo ISCC completed successfully
+          Write-Host "Running ISCC..."
+          & $isccPath $issPath 2>&1 | ForEach-Object { Write-Host $_ }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: ISCC failed with exit code: $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
+          Write-Host "ISCC completed successfully"
 
       - name: Verify installer
         shell: pwsh
