@@ -56,26 +56,6 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          Write-Host "Installing Inno Setup via Chocolatey..."
-          choco install innosetup --yes --no-progress
-          Write-Host "Chocolatey install completed with exit code: $LASTEXITCODE"
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (Test-Path $isccPath) {
-            Write-Host "ISCC.exe found at: $isccPath"
-            $fileInfo = Get-Item $isccPath
-            Write-Host "File size: $($fileInfo.Length) bytes"
-            Write-Host "Last modified: $($fileInfo.LastWriteTime)"
-          } else {
-            Write-Host "ISCC.exe not found at expected path. Searching..."
-            Get-ChildItem "C:\Program Files" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-            Get-ChildItem "C:\Program Files (x86)" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-            Write-Host "ERROR: ISCC.exe not found anywhere"
-            exit 1
-          }
-
       - name: Generate ISS file from template
         shell: pwsh
         run: |
@@ -103,14 +83,14 @@ jobs:
           Write-Host "Version: $version"
           Write-Host "SourceDir: $sourceDir"
           Write-Host "OutputDir: $outputDir"
+          Write-Host "=== ISS content ==="
+          Get-Content $issPath | Write-Host
 
       - name: Compile Inno Setup installer
-        shell: pwsh
-        run: |
-          $issPath = "${{ github.workspace }}\tools\installer\build.iss"
-          $scriptPath = "${{ github.workspace }}\tools\installer\compile.ps1"
-          Write-Host "Running compile script..."
-          & $scriptPath -IssPath $issPath
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
+        with:
+          path: tools/installer/build.iss
+          install_latest: true
 
       - name: Verify installer
         shell: pwsh
