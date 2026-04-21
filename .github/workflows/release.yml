@@ -82,33 +82,42 @@ jobs:
       - name: Build Inno Setup installer
         shell: pwsh
         run: |
+          Write-Host "=== Step started ==="
           $appVer = "${{ steps.prep.outputs.VERSION }}"
           $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}"
           $outputDir = "${{ github.workspace }}\tools\installer\output"
           $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
           $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
-          Write-Host "=== Build Inno Setup installer ==="
           Write-Host "AppVersion: $appVer"
           Write-Host "SourceDir:  $srcDir"
           Write-Host "OutputDir:  $outputDir"
           Write-Host "ISS file:   $issPath"
           Write-Host "ISCC path:  $isccPath"
+          Write-Host "ISCC exists: $(Test-Path $isccPath)"
+          Write-Host "Source exists: $(Test-Path $srcDir)"
+          Write-Host "ISS exists: $(Test-Path $issPath)"
 
-          if (-not (Test-Path $isccPath)) { Write-Error "ISCC.exe not found"; exit 1 }
-          if (-not (Test-Path $srcDir)) { Write-Error "Source directory not found: $srcDir"; exit 1 }
-          if (-not (Test-Path $issPath)) { Write-Error "ISS file not found: $issPath"; exit 1 }
+          if (-not (Test-Path $isccPath)) {
+            Write-Error "ISCC.exe not found at $isccPath"
+            exit 1
+          }
+          if (-not (Test-Path $srcDir)) {
+            Write-Error "Source directory not found: $srcDir"
+            exit 1
+          }
+          if (-not (Test-Path $issPath)) {
+            Write-Error "ISS file not found: $issPath"
+            exit 1
+          }
 
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
           $tempIss = Join-Path $env:RUNNER_TEMP "build.iss"
-          $issContent = @"
-          #define AppVersion "$appVer"
-          #define SourceDir "$srcDir"
-          #define OutputDir "$outputDir"
-          #include "$issPath"
-          "@
-          $issContent | Set-Content -Path $tempIss -Encoding UTF8
+          Set-Content -Path $tempIss -Value "#define AppVersion `"$appVer`"" -Encoding UTF8
+          Add-Content -Path $tempIss -Value "#define SourceDir `"$srcDir`"" -Encoding UTF8
+          Add-Content -Path $tempIss -Value "#define OutputDir `"$outputDir`"" -Encoding UTF8
+          Add-Content -Path $tempIss -Value "#include `"$issPath`"" -Encoding UTF8
 
           Write-Host "Created temp ISS: $tempIss"
           Write-Host "--- Temp ISS content ---"
@@ -117,6 +126,7 @@ jobs:
 
           Write-Host "Running ISCC..."
           & $isccPath $tempIss
+          Write-Host "ISCC exit code: $LASTEXITCODE"
           if ($LASTEXITCODE -ne 0) {
             Write-Error "ISCC failed with exit code $LASTEXITCODE"
             exit 1
