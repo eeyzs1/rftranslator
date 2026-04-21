@@ -56,88 +56,35 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
-      - name: Install Inno Setup
+      - name: Prepare Inno Setup script
+        id: iss
         shell: pwsh
         run: |
-          choco install innosetup -y --no-progress
-          Write-Host "Searching for ISCC.exe..."
-          Get-ChildItem "C:\Program Files (x86)\Inno Setup*" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-          Get-Command ISCC.exe -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "On PATH: $($_.Source)" }
-
-      - name: Build Inno Setup installer
-        id: inno
-        continue-on-error: true
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
           $appVer = "${{ steps.prep.outputs.VERSION }}".Trim()
           $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}".Trim()
-          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
           $outputDir = "${{ github.workspace }}\tools\installer\output"
-          
+          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
+
           New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-          
-          $isccExe = $null
-          $searchPaths = @(
-            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-            "C:\Program Files\Inno Setup 6\ISCC.exe",
-            "C:\Program Files (x86)\Inno Setup 5\ISCC.exe"
-          )
-          foreach ($p in $searchPaths) {
-            if (Test-Path $p) {
-              $isccExe = $p
-              break
-            }
-          }
-          if (-not $isccExe) {
-            $cmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-            if ($cmd) { $isccExe = $cmd.Source }
-          }
-          if (-not $isccExe) {
-            $found = Get-ChildItem "C:\Program Files*\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($found) { $isccExe = $found.FullName }
-          }
-          if (-not $isccExe) {
-            Write-Warning "ISCC.exe not found, skipping installer build"
-            exit 0
-          }
-          
-          Write-Host "ISCC: $isccExe"
-          Write-Host "AppVersion: $appVer"
-          Write-Host "SourceDir: $srcDir"
-          Write-Host "OutputDir: $outputDir"
-          Write-Host "ISS Path: $issPath"
-          
-          if (-not (Test-Path $issPath)) {
-            Write-Error "ISS file not found: $issPath"
-            exit 1
-          }
-          
-          $wrapperPath = Join-Path $env:RUNNER_TEMP "build_installer.iss"
-          $line1 = "#define AppVersion `"$appVer`""
-          $line2 = "#define SourceDir `"$srcDir`""
-          $line3 = "#define OutputDir `"$outputDir`""
-          $line4 = "#include `"$issPath`""
-          [System.IO.File]::WriteAllLines($wrapperPath, @($line1, $line2, $line3, $line4), (New-Object System.Text.UTF8Encoding $false))
-          
-          Write-Host "Wrapper ISS content:"
-          Get-Content $wrapperPath | Write-Host
-          
-          Write-Host "Running ISCC..."
-          & $isccExe $wrapperPath 2>&1 | Write-Host
-          
-          $installerName = "rftranslator-$appVer-setup.exe"
-          $installerPath = Join-Path $outputDir $installerName
-          if (Test-Path $installerPath) {
-            Write-Host "Installer created: $installerPath"
-            echo "INSTALLER_PATH=$installerPath" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Warning "Installer not found at: $installerPath"
-            Get-ChildItem $outputDir -ErrorAction SilentlyContinue | Write-Host
-          }
+
+          $content = Get-Content $issPath -Raw -Encoding UTF8
+          $content = $content.Replace('  #define AppVersion "0.0.0"', "  #define AppVersion `"$appVer`"")
+          $content = $content.Replace('  #define SourceDir ".\build"', "  #define SourceDir `"$srcDir`"")
+          $content = $content.Replace('  #define OutputDir ".\output"', "  #define OutputDir `"$outputDir`"")
+
+          $modifiedPath = Join-Path $env:RUNNER_TEMP "rftranslator_build.iss"
+          [System.IO.File]::WriteAllText($modifiedPath, $content, (New-Object System.Text.UTF8Encoding $false))
+
+          Write-Host "Modified ISS file created at: $modifiedPath"
+          echo "ISS_PATH=$modifiedPath" >> $env:GITHUB_OUTPUT
+
+      - name: Build Inno Setup installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.7
+        with:
+          path: ${{ steps.iss.outputs.ISS_PATH }}
+          install_latest: true
 
       - name: Upload Installer to Release
-        if: steps.inno.outcome == 'success'
         uses: softprops/action-gh-release@v2
         with:
           files: tools/installer/output/rftranslator-${{ steps.prep.outputs.VERSION }}-setup.exe
