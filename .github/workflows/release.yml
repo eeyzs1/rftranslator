@@ -107,34 +107,10 @@ jobs:
       - name: Compile Inno Setup installer
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           $issPath = "${{ github.workspace }}\tools\installer\build.iss"
-          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-
-          Write-Host "ISCC path: $isccPath"
-          Write-Host "ISCC exists: $(Test-Path $isccPath)"
-          Write-Host "ISS path: $issPath"
-          Write-Host "ISS exists: $(Test-Path $issPath)"
-
-          if (-not (Test-Path $isccPath)) {
-            Write-Host "Searching for ISCC.exe..."
-            Get-ChildItem "C:\Program Files" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-            Get-ChildItem "C:\Program Files (x86)" -Recurse -Filter "ISCC.exe" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "Found: $($_.FullName)" }
-            Write-Host "ERROR: ISCC.exe not found"
-            exit 1
-          }
-
-          Write-Host "=== ISS file content ==="
-          Get-Content $issPath | Write-Host
-          Write-Host "=== End of ISS file ==="
-
-          Write-Host "Running ISCC..."
-          & $isccPath $issPath 2>&1 | ForEach-Object { Write-Host $_ }
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: ISCC failed with exit code: $LASTEXITCODE"
-            exit $LASTEXITCODE
-          }
-          Write-Host "ISCC completed successfully"
+          $scriptPath = "${{ github.workspace }}\tools\installer\compile.ps1"
+          Write-Host "Running compile script..."
+          & $scriptPath -IssPath $issPath
 
       - name: Verify installer
         shell: pwsh
