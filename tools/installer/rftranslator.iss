@@ -4,7 +4,7 @@
 #define AppName "rftranslator"
 #define AppExeName "rftranslator.exe"
 #define AppPublisher "rftranslator"
-#define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+#define AppGUID "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
@@ -29,7 +29,7 @@ OutputBaseFilename={#AppName}-{#AppVersion}-setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=dialog
 UninstallDisplayIcon={app}\{#AppExeName}
 CreateAppDir=yes
 DisableWelcomePage=no
