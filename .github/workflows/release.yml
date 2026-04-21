@@ -60,7 +60,10 @@ jobs:
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
         with:
           path: tools/installer/rftranslator.iss
-          options: /DAppVersion=${{ steps.prep.outputs.VERSION }} /DSourceDir=${{ steps.prep.outputs.BUILD_DIR }} /DOutputDir=${{ github.workspace }}\tools\installer\output
+          options: |
+            /DAppVersion=${{ steps.prep.outputs.VERSION }}
+            /DSourceDir=${{ steps.prep.outputs.BUILD_DIR }}
+            /DOutputDir=${{ github.workspace }}\tools\installer\output
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
