@@ -164,7 +164,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             title: const Text(''),
             subtitle: Text(
-              l10n.completelyFree,
+              l10n.realFree,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -176,10 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text(l10n.version),
             trailing: const Text('1.0.0'),
           ),
-          ListTile(
-            title: Text(l10n.dictionary),
-            trailing: Text(l10n.ecdictInfo),
-          ),
+
         ],
       ),
     );
@@ -197,6 +194,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
+        softWrap: true,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,

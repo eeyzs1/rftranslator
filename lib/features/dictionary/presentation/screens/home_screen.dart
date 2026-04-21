@@ -138,7 +138,11 @@ class HomeScreen extends ConsumerWidget {
                   final item = recent[index];
                   return ListTile(
                     leading: const Icon(Icons.history, size: 20),
-                    title: Text(item.sourceText),
+                    title: Text(
+                      item.sourceText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     subtitle: Text(
                       item.targetText,
                       maxLines: 1,

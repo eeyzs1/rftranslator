@@ -105,8 +105,16 @@ class _HistoryListItem extends ConsumerWidget {
         ref.read(translationHistoryListProvider.notifier).deleteEntry(item);
       },
       child: ListTile(
-        title: Text(item.sourceText),
-        subtitle: Text(item.targetText),
+        title: Text(
+          item.sourceText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          item.targetText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         onTap: () {
           final notifier = ref.read(translationProvider.notifier);
           notifier.updateSourceLang(item.sourceLang);

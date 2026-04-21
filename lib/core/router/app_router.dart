@@ -109,9 +109,17 @@ class _ScaffoldWithNavigationState extends ConsumerState<_ScaffoldWithNavigation
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
-    final isDesktop = PlatformUtils.isDesktop;
+    final settings = ref.watch(settingsProvider);
+    
+    // 根据 UI 风格确定使用哪种导航方式
+    UIStyle effectiveStyle = settings.uiStyle;
+    if (effectiveStyle == UIStyle.adaptive) {
+      effectiveStyle = PlatformUtils.isWindows ? UIStyle.fluent : UIStyle.material3;
+    }
+    
+    final useSidebar = effectiveStyle == UIStyle.fluent;
 
-    if (isDesktop) {
+    if (useSidebar) {
       return Scaffold(
         body: Row(children: [
           NavigationRail(

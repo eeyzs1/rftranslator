@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build & Release (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+          channel: 'stable'
+          cache: true
+          cache-key: flutter-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows (Release)
+        run: flutter build windows --release
+
+      - name: Prepare artifact paths
+        id: prep
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $baseName = "rftranslator-$tag"
+          $buildDir = "build\windows\x64\runner\Release"
+          echo "VERSION=$tag" >> $env:GITHUB_OUTPUT
+          echo "BASE_NAME=$baseName" >> $env:GITHUB_OUTPUT
+          echo "BUILD_DIR=$buildDir" >> $env:GITHUB_OUTPUT
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ steps.prep.outputs.BUILD_DIR }}\*" -DestinationPath "${{ steps.prep.outputs.BASE_NAME }}.zip" -CompressionLevel Optimal
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build Inno Setup installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.prep.outputs.VERSION }}
+          BUILD_DIR: ${{ steps.prep.outputs.BUILD_DIR }}
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /O+ /Qp "tools/installer/rftranslator.iss"
+
+      - name: Upload ZIP to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.prep.outputs.BASE_NAME }}.zip
+          generate_release_notes: true
+
+      - name: Upload Installer to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: tools/installer/output/rftranslator-${{ steps.prep.outputs.VERSION }}-setup.exe

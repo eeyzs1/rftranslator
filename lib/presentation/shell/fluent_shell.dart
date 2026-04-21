@@ -25,7 +25,7 @@ class FluentShell extends ConsumerWidget {
         items: [
           fluent.PaneItem(
             icon: const Icon(Icons.translate_outlined),
-            title: const Text('翻译'),
+            title: Text(l10n.translateNav),
             body: const TranslationScreen(),
           ),
           fluent.PaneItem(

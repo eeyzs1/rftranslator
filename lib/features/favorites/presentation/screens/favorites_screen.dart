@@ -100,6 +100,7 @@ class _FavoriteListItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return Dismissible(
       key: ValueKey(item.key),
       direction: DismissDirection.endToStart,
@@ -116,24 +117,32 @@ class _FavoriteListItem extends ConsumerWidget {
         return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Remove from Favorites'),
-            content: Text('Remove "${item.sourceText}" from favorites?'),
+            title: Text(l10n.removeFavoriteTitle),
+            content: Text(l10n.removeFavoriteConfirm),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Remove'),
+                child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
               ),
             ],
           ),
         ) ?? false;
       },
       child: ListTile(
-        title: Text(item.sourceText),
-        subtitle: Text(item.targetText),
+        title: Text(
+          item.sourceText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          item.targetText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.star, color: Colors.amber),
           onPressed: () {

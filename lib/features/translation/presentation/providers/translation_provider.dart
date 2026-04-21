@@ -37,6 +37,18 @@ class DictionaryTranslationResult {
   });
 }
 
+class ModelTranslationResult {
+  final String modelId;
+  final String modelName;
+  final String targetText;
+
+  const ModelTranslationResult({
+    required this.modelId,
+    required this.modelName,
+    required this.targetText,
+  });
+}
+
 class TranslationState {
   final String sourceText;
   final String targetText;
@@ -55,6 +67,10 @@ class TranslationState {
   final bool isWordOrPhrase;
   final String? llmTranslation;
   final List<DictionaryTranslationResult> dictionaryResults;
+  final List<ModelTranslationResult> modelResults;
+  final String? translatingModelName;
+  final int translatingModelIndex;
+  final int translatingModelTotal;
 
   TranslationState({
     this.sourceText = '',
@@ -74,6 +90,10 @@ class TranslationState {
     this.isWordOrPhrase = false,
     this.llmTranslation,
     this.dictionaryResults = const [],
+    this.modelResults = const [],
+    this.translatingModelName,
+    this.translatingModelIndex = 0,
+    this.translatingModelTotal = 0,
   });
 
   TranslationState copyWith({
@@ -94,6 +114,10 @@ class TranslationState {
     bool? isWordOrPhrase,
     Object? llmTranslation = _unset,
     List<DictionaryTranslationResult>? dictionaryResults,
+    List<ModelTranslationResult>? modelResults,
+    Object? translatingModelName = _unset,
+    int? translatingModelIndex,
+    int? translatingModelTotal,
   }) {
     return TranslationState(
       sourceText: sourceText ?? this.sourceText,
@@ -113,6 +137,10 @@ class TranslationState {
       isWordOrPhrase: isWordOrPhrase ?? this.isWordOrPhrase,
       llmTranslation: identical(llmTranslation, _unset) ? this.llmTranslation : llmTranslation as String?,
       dictionaryResults: dictionaryResults ?? this.dictionaryResults,
+      modelResults: modelResults ?? this.modelResults,
+      translatingModelName: identical(translatingModelName, _unset) ? this.translatingModelName : translatingModelName as String?,
+      translatingModelIndex: translatingModelIndex ?? this.translatingModelIndex,
+      translatingModelTotal: translatingModelTotal ?? this.translatingModelTotal,
     );
   }
 }
@@ -163,6 +191,10 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
       definitions: null,
       examples: null,
       dictionaryResults: [],
+      modelResults: [],
+      translatingModelName: null,
+      translatingModelIndex: 0,
+      translatingModelTotal: 0,
     );
 
     try {
@@ -372,139 +404,141 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
 
   Future<void> _tryOpusMtTranslation() async {
     final modelManager = _ref.read(modelManagerProvider.notifier);
-    final matchedModel = modelManager.getEnabledModelForLangPair(
+    final matchedModels = modelManager.getEnabledModelsForLangPair(
       state.sourceLang.code,
       state.targetLang.code,
     );
 
-    if (matchedModel == null) {
+    if (matchedModels.isEmpty) {
       debugPrint('[Translation] No enabled model found for ${state.sourceLang.code}→${state.targetLang.code}');
       if (state.hasDictionaryResult || state.hasLLMResult) {
         await _saveToHistory();
       }
       state = state.copyWith(
         isTranslating: false,
-        error: state.hasDictionaryResult ? null : '没有可用的翻译模型，请先在模型管理页面下载并启用 ${state.sourceLang.code}→${state.targetLang.code} 语对的模型',
+        error: state.hasDictionaryResult ? null : 'No translation model available. Please download and enable the ${state.sourceLang.code}→${state.targetLang.code} model pair from the model management page.',
       );
       return;
     }
 
-    final modelPath = await modelManager.getValidModelPath(matchedModel);
-    if (modelPath == null) {
-      debugPrint('[Translation] Model path not found for ${matchedModel.folderName}');
-      if (state.hasDictionaryResult || state.hasLLMResult) {
-        await _saveToHistory();
-      }
+    final allModelResults = <ModelTranslationResult>[];
+    String? primaryResult;
+
+    state = state.copyWith(
+      isTranslatingWithLLM: true,
+      translatingModelTotal: matchedModels.length,
+    );
+
+    if (!await CTranslate2DataSource.isAvailable()) {
+      debugPrint('[Translation] CTranslate2 library not available');
       state = state.copyWith(
         isTranslating: false,
-        error: state.hasDictionaryResult ? null : '模型文件未找到，请重新下载 ${matchedModel.displayName}',
+        isTranslatingWithLLM: false,
+        error: 'CTranslate2 runtime library not found. Please ensure it is installed correctly.',
       );
       return;
     }
 
-    final llmService = _ref.read(llmServiceProvider.notifier);
-    final currentDataSource = llmService.dataSource;
+    for (int i = 0; i < matchedModels.length; i++) {
+      final matchedModel = matchedModels[i];
+      debugPrint('[Translation] Translating with model ${i + 1}/${matchedModels.length}: ${matchedModel.displayName}');
 
-    if (currentDataSource is CTranslate2DataSource) {
-      debugPrint('[Translation] Using existing CTranslate2 data source');
-    } else {
-      if (!await CTranslate2DataSource.isAvailable()) {
-        debugPrint('[Translation] CTranslate2 library not available');
-        if (state.hasDictionaryResult || state.hasLLMResult) {
-          await _saveToHistory();
-        }
-        state = state.copyWith(
-          isTranslating: false,
-          error: state.hasDictionaryResult ? null : 'CTranslate2 运行库未找到，请确保已正确安装',
-        );
-        return;
+      state = state.copyWith(
+        translatingModelName: matchedModel.displayName,
+        translatingModelIndex: i + 1,
+      );
+
+      final modelPath = await modelManager.getValidModelPath(matchedModel);
+      if (modelPath == null) {
+        debugPrint('[Translation] Model path not found for ${matchedModel.folderName}, skipping');
+        continue;
       }
 
-      debugPrint('[Translation] Loading model via CTranslate2 FFI: ${matchedModel.folderName}');
+      debugPrint('[Translation] Starting isolate translation: modelPath=$modelPath');
+      final stopwatch = Stopwatch()..start();
+
+      String? llmResult;
       try {
-        await llmService.initialize(modelPath, dataSource: CTranslate2DataSource());
-        debugPrint('[Translation] Model loaded successfully via CTranslate2 FFI');
-      } catch (e) {
-        debugPrint('[Translation] Failed to load model via CTranslate2: $e');
-        if (state.hasDictionaryResult || state.hasLLMResult) {
-          await _saveToHistory();
-        }
-        state = state.copyWith(
-          isTranslating: false,
-          error: state.hasDictionaryResult ? null : '模型加载失败: $e',
+        llmResult = await CTranslate2DataSource.translateInIsolate(
+          modelPath: modelPath,
+          text: state.sourceText,
         );
-        return;
+      } catch (e, stackTrace) {
+        debugPrint('[Translation] Isolate translation error: $e');
+        debugPrint('[Translation] StackTrace: $stackTrace');
+        continue;
       }
-    }
 
-    final llmDataSource = llmService.dataSource;
-    debugPrint('[Translation] _tryOpusMtTranslation: dataSource type=${llmDataSource.runtimeType}');
+      stopwatch.stop();
+      debugPrint('[Translation] Model ${matchedModel.displayName} completed in ${stopwatch.elapsedMilliseconds}ms, result: "$llmResult"');
 
-    if (llmDataSource == null) {
-      debugPrint('[Translation]   No LLM data source available after init');
-      if (state.hasDictionaryResult || state.hasLLMResult) {
-        await _saveToHistory();
+      if (llmResult == null || llmResult.isEmpty) {
+        debugPrint('[Translation] Model ${matchedModel.displayName} returned empty result, skipping');
+        continue;
       }
-      state = state.copyWith(isTranslating: false);
-      return;
-    }
 
-    debugPrint('[Translation]   Using LLM data source: ${llmDataSource.runtimeType}');
-    state = state.copyWith(isTranslatingWithLLM: true);
-
-    try {
-      final stream = llmService.translate(
-        state.sourceText,
-        targetLang: state.targetLang.code,
+      final modelResult = ModelTranslationResult(
+        modelId: matchedModel.folderName,
+        modelName: matchedModel.displayName,
+        targetText: llmResult,
       );
-      final tokens = <String>[];
-      await for (final token in stream) {
-        tokens.add(token);
-      }
-      final llmResult = tokens.join();
-      debugPrint('[Translation]   LLM result: "$llmResult"');
+
+      allModelResults.add(modelResult);
+      primaryResult ??= llmResult;
+
+      final isLastModel = i == matchedModels.length - 1;
+      final hasMoreModels = !isLastModel;
 
       if (state.hasDictionaryResult) {
         state = state.copyWith(
-          isTranslating: false,
-          isTranslatingWithLLM: false,
           hasLLMResult: true,
-          llmTranslation: llmResult,
+          llmTranslation: primaryResult,
+          modelResults: allModelResults,
+          isTranslatingWithLLM: hasMoreModels,
+          isTranslating: hasMoreModels || state.isLoadingDictionary,
         );
       } else {
         state = state.copyWith(
-          isTranslating: false,
-          isTranslatingWithLLM: false,
           hasLLMResult: true,
-          targetText: llmResult,
+          targetText: primaryResult!,
+          llmTranslation: primaryResult,
+          modelResults: allModelResults,
           result: TranslationResult(
             sourceText: state.sourceText,
-            targetText: llmResult,
+            targetText: primaryResult!,
             sourceLang: state.sourceLang,
             targetLang: state.targetLang,
             translatedAt: DateTime.now(),
             source: TranslationSource.opusMt,
             isWordOrPhrase: state.isWordOrPhrase,
           ),
+          isTranslatingWithLLM: hasMoreModels,
+          isTranslating: hasMoreModels,
         );
       }
 
-      _saveToHistory();
-    } catch (e) {
-      debugPrint('[Translation]   LLM error: $e');
-      if (!state.hasDictionaryResult) {
-        state = state.copyWith(
-          isTranslating: false,
-          isTranslatingWithLLM: false,
-          error: '\u7FFB\u8BD1\u5931\u8D25\uFF1A${e.toString()}',
-        );
-      } else {
-        state = state.copyWith(
-          isTranslating: false,
-          isTranslatingWithLLM: false,
-        );
-      }
+      debugPrint('[Translation] State updated with model ${i + 1} result, hasMoreModels=$hasMoreModels');
     }
+
+    if (allModelResults.isEmpty) {
+      if (state.hasDictionaryResult) {
+        await _saveToHistory();
+      }
+      state = state.copyWith(
+        isTranslating: false,
+        isTranslatingWithLLM: false,
+        error: state.hasDictionaryResult ? null : 'All models failed to translate.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      isTranslating: false,
+      isTranslatingWithLLM: false,
+      translatingModelName: null,
+    );
+
+    _saveToHistory();
   }
 
   Future<void> _saveToHistory() async {

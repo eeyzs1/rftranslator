@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+          channel: 'stable'
+          cache: true
+          cache-key: flutter-${{ hashFiles('**/pubspec.lock') }}
+
+      - run: dart analyze --fatal-infos --fatal-warnings
+      - run: flutter test --reporter=github
+
+  build-windows-check:
+    name: Build Windows (Check)
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+          channel: 'stable'
+          cache: true
+          cache-key: flutter-${{ hashFiles('**/pubspec.lock') }}
+
+      - run: flutter pub get
+      - run: flutter build windows --debug
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          $exe = "build\windows\x64\runner\Debug\rftranslator.exe"
+          if (Test-Path $exe) {
+            Write-Host "Build succeeded: $(Get-Item $exe).FullName ($([math]::Round((Get-Item $exe).Length / 1MB, 2)) MB)"
+          } else {
+            Write-Error "Build failed: $exe not found"
+            exit 1
+          }

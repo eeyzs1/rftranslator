@@ -28,8 +28,9 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
   }
 
   Future<void> _importLocalModel() async {
+    final l10n = AppLocalizations.of(context);
     final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: '选择模型文件夹 (Select Model Folder)',
+      dialogTitle: l10n.selectModelFolder,
     );
     if (selectedDirectory == null) return;
 
@@ -39,7 +40,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       if (error != null) {
         AppToast.show(context, error);
       } else {
-        AppToast.show(context, '模型导入成功 / Model imported successfully');
+        AppToast.show(context, l10n.modelImportedSuccess);
         setState(() {});
       }
     }
@@ -103,7 +104,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     if (source == 'modelscope' && modelState.type.modelScopeUrl == null) {
       if (mounted) {
         AppToast.show(context,
-          '此模型在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect',
+          l10n.modelScopeUnavailable,
         );
       }
       return;
@@ -114,7 +115,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       if (!hfAvailable) {
         if (mounted) {
           AppToast.show(context,
-            'HuggingFace 不可用，请切换到 ModelScope 或 Auto Detect',
+            l10n.huggingFaceUnavailableToast,
           );
         }
         return;
@@ -134,7 +135,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       );
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, '下载出错: $e');
+        AppToast.show(context, '${l10n.downloadError}$e');
       }
     }
   }
@@ -177,7 +178,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
     return code.toUpperCase();
   }
 
-  Widget _buildSourceOption(String value, String label, String description) {
+  Widget _buildSourceOption(String value, String label, String description, AppLocalizations l10n) {
     final isAvailable = _sourceAvailability?[value] ?? false;
     final modelState = ref.read(modelManagerProvider);
     final isDownloading = modelState.downloadStatus == ModelDownloadStatus.downloading;
@@ -204,7 +205,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  isAvailable ? '可用 / OK' : '不可用 / Down',
+                  isAvailable ? l10n.statusAvailable : l10n.statusUnavailable,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -233,7 +234,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       if (previous?.downloadStatus != ModelDownloadStatus.completed &&
           next.downloadStatus == ModelDownloadStatus.completed) {
         if (mounted) {
-          AppToast.show(context, '模型下载完成 / Model downloaded successfully');
+          AppToast.show(context, l10n.modelDownloadCompletedToast);
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) {
               ref.read(modelManagerProvider.notifier).resetDownload();
@@ -251,7 +252,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _isCheckingSources ? null : _checkSources,
-            tooltip: '刷新 / Refresh',
+            tooltip: l10n.refreshSources,
           ),
         ],
       ),
@@ -284,16 +285,14 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '翻译模型 / Translation Models',
+                        l10n.translationModelsTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh'
-                            ? '按源语言分组，点击展开查看可下载的语对模型'
-                            : 'Grouped by source language. Tap to expand and see available language pairs.',
+                        l10n.modelsGroupedByLangDesc,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -328,9 +327,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                 ),
                               ),
                               subtitle: Text(
-                                localeCode == 'zh'
-                                    ? '$downloadedCount/${models.length} 已安装'
-                                    : '$downloadedCount/${models.length} installed',
+                                '$downloadedCount/${models.length} ${l10n.installedCount}',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               trailing: Icon(
@@ -404,7 +401,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Text(
-                                              localeCode == 'zh' ? '仅本地' : 'Local only',
+                                              l10n.localOnlyLabel,
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 10,
@@ -414,14 +411,19 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                           ),
                                       ],
                                     ),
-                                    subtitle: Text(
-                                      '${type.sizeInfo}'
-                                      '${type.modelScopeUrl != null ? " · ModelScope ✓" : ""}'
-                                      '${type.modelHubUrl != null ? " · HuggingFace ✓" : ""}',
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary,
-                                        fontSize: 11,
-                                      ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${type.sizeInfo}'
+                                                '${type.modelScopeUrl != null ? " · ModelScope ✓" : ""}'
+                                                '${type.modelHubUrl != null ? " · HuggingFace ✓" : ""}',
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.secondary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     trailing: isDownloaded
                                         ? null
@@ -438,7 +440,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                                                 : () {
                                                     modelManager.selectModel(type);
                                                   },
-                                            tooltip: localeCode == 'zh' ? '选择下载' : 'Select to download',
+                                            tooltip: l10n.selectToDownloadTooltip,
                                           ),
                                     onTap: isDownloading
                                         ? null
@@ -474,7 +476,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       Row(
                         children: [
                           Text(
-                            '下载源 / Download Source',
+                            l10n.downloadSourceTitle,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -491,18 +493,21 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                       const SizedBox(height: 16),
                       _buildSourceOption(
                         'auto',
-                        '自动检测 / Auto Detect',
-                        '自动选择最佳下载源',
+                        l10n.autoDetectOption,
+                        l10n.autoDetectOptionDesc,
+                        l10n,
                       ),
                       _buildSourceOption(
                         'huggingface',
-                        'Hugging Face',
-                        '官方源（可能需要代理）',
+                        l10n.huggingfaceOption,
+                        l10n.huggingfaceOptionDesc,
+                        l10n,
                       ),
                       _buildSourceOption(
                         'modelscope',
-                        'ModelScope（阿里）',
-                        '阿里云模型库（国内推荐）',
+                        l10n.modelscopeOption,
+                        l10n.modelscopeOptionDesc,
+                        l10n,
                       ),
                     ],
                   ),
@@ -518,16 +523,14 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '本地导入 / Local Import',
+                        l10n.localImportTitle,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '从本地磁盘导入 OPUS-MT 模型文件夹\n'
-                        '文件夹名需为 opus-mt-[l1]-[l2] 格式（如 opus-mt-zh-de）\n'
-                        '需包含: config.json, pytorch_model.bin, source.spm, target.spm, vocab.json',
+                        l10n.localImportDescription,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -538,7 +541,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         child: OutlinedButton.icon(
                           onPressed: _importLocalModel,
                           icon: const Icon(Icons.folder_open),
-                          label: const Text('选择模型文件夹 / Select Model Folder'),
+                          label: Text(l10n.selectModelFolder),
                         ),
                       ),
                       if (ref.read(modelManagerProvider.notifier).customModels.isNotEmpty) ...[
@@ -546,7 +549,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         const Divider(),
                         const SizedBox(height: 8),
                         Text(
-                          '已导入的自定义模型 / Imported Custom Models',
+                          l10n.importedCustomModelsTitle,
                           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -594,7 +597,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '正在下载 / Downloading...',
+                              l10n.downloadingTitle,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             Text(
@@ -667,7 +670,7 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                               child: OutlinedButton.icon(
                                 onPressed: () => modelManager.resetDownload(),
                                 icon: const Icon(Icons.close),
-                                label: const Text('关闭 / Close'),
+                                label: Text(l10n.closeButton),
                               ),
                             ),
                           ],
@@ -686,14 +689,12 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        localeCode == 'zh' ? '已安装模型' : 'Installed Models',
+                        l10n.installedModelsTitle,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh'
-                            ? '勾选的模型将在翻译时自动使用（根据语对匹配）'
-                            : 'Checked models will be used automatically during translation (matched by language pair)',
+                        l10n.installedModelsDesc,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -797,13 +798,8 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        '架构说明 / Architecture Overview\n\n'
-                        '• Encoder-Decoder 架构模型，专为长句翻译优化\n\n'
-                        '翻译流程 / Translation Flow:\n'
-                        '1. 单词/短语 → StarDict 词典\n'
-                        '2. 长句/段落 → Encoder-Decoder 模型\n'
-                        '3. 词典未找到 → Encoder-Decoder 模型兜底',
+                      Text(
+                        l10n.architectureOverviewText,
                       ),
                     ],
                   ),
@@ -875,29 +871,29 @@ class _ModelDownloadScreenState extends ConsumerState<ModelDownloadScreen> {
       switch (source) {
         case 'modelscope':
           if (!hasScope) {
-            warning = '此模型 ${modelState.type.displayName} 在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect';
+            warning = l10n.modelScopeModelUnavailable;
             warningIcon = Icons.warning_amber_rounded;
             canDownload = false;
           } else if (!scopeAvailable) {
-            warning = 'ModelScope 连接不可用，请检查网络';
+            warning = l10n.modelScopeConnectionUnavailable;
             warningIcon = Icons.cloud_off_rounded;
             canDownload = false;
           }
           break;
         case 'huggingface':
           if (!hfAvailable) {
-            warning = 'HuggingFace 连接不可用，请切换到 ModelScope 或 Auto Detect';
+            warning = l10n.huggingFaceConnectionUnavailable;
             warningIcon = Icons.cloud_off_rounded;
             canDownload = false;
           }
           break;
         default:
           if (!hfAvailable && !hasScope) {
-            warning = '此模型 ${modelState.type.displayName} 无可用下载源：HuggingFace 不可用且 ModelScope 上无此模型';
+            warning = l10n.noDownloadSourceAvailable;
             warningIcon = Icons.block_rounded;
             canDownload = false;
           } else if (!hfAvailable && !scopeAvailable && hasScope) {
-            warning = '所有下载源均不可用，请检查网络';
+            warning = l10n.allSourcesUnavailable;
             warningIcon = Icons.cloud_off_rounded;
             canDownload = false;
           }

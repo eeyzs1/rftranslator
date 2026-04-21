@@ -30,6 +30,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
   }
 
   Future<void> _loadWordEntry() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -44,7 +45,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
           _wordEntry = entry;
           _isLoading = false;
           if (entry == null) {
-            _errorMessage = '\u672A\u627E\u5230 "$_decodedWord" \u7684\u8BCD\u5178\u6761\u76EE';
+            _errorMessage = '${l10n.wordNotFound}$_decodedWord"';
           }
         });
       }
@@ -52,7 +53,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '\u67E5\u8BE2\u51FA\u9519: $e';
+          _errorMessage = '${l10n.queryError}$e';
         });
       }
     }
@@ -74,10 +75,10 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
               });
               AppToast.show(
                 context,
-                _isFavorite ? '已添加到收藏' : '已取消收藏',
+                _isFavorite ? l10n.addedToFavorites : l10n.removedFromFavorites,
               );
             },
-            tooltip: '收藏',
+            tooltip: l10n.favoriteTooltip,
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -114,7 +115,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                   children: [
                     Icon(Icons.volume_up, size: 20),
                     SizedBox(width: 8),
-                    Text('\u64AD\u653E'),
+                    Text(l10n.speak),
                   ],
                 ),
               ),
@@ -124,7 +125,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                   children: [
                     Icon(Icons.share, size: 20),
                     SizedBox(width: 8),
-                    Text('\u5206\u4EAB'),
+                    Text(l10n.share),
                   ],
                 ),
               ),
@@ -153,7 +154,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              _errorMessage ?? '\u672A\u627E\u5230\u8BCD\u5178\u6761\u76EE',
+              _errorMessage ?? l10n.noDictionaryEntryFound,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               ),
@@ -162,7 +163,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
             FilledButton.icon(
               onPressed: _loadWordEntry,
               icon: const Icon(Icons.refresh),
-              label: const Text('\u91CD\u8BD5'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -240,7 +241,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
           if (_wordEntry!.examples.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(
-              '\u4F8B\u53E5',
+                l10n.wordExample,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,

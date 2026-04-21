@@ -141,46 +141,46 @@ class CustomModelEntry {
 extension ModelTypeExtension on ModelType {
   String get displayName {
     return switch (this) {
-      ModelType.opusMtEnZh => 'OPUS-MT en→zh (英译中)',
-      ModelType.opusMtZhEn => 'OPUS-MT zh→en (中译英)',
-      ModelType.opusMtEnDe => 'OPUS-MT en→de (英译德)',
-      ModelType.opusMtEnFr => 'OPUS-MT en→fr (英译法)',
-      ModelType.opusMtEnEs => 'OPUS-MT en→es (英译西)',
-      ModelType.opusMtEnIt => 'OPUS-MT en→it (英译意)',
-      ModelType.opusMtEnRu => 'OPUS-MT en→ru (英译俄)',
-      ModelType.opusMtEnAr => 'OPUS-MT en→ar (英译阿)',
-      ModelType.opusMtEnJap => 'OPUS-MT en→ja (英译日)',
-      ModelType.opusMtEnKo => 'OPUS-MT en→ko (英译韩)',
-      ModelType.opusMtDeEn => 'OPUS-MT de→en (德译英)',
-      ModelType.opusMtFrEn => 'OPUS-MT fr→en (法译英)',
-      ModelType.opusMtEsEn => 'OPUS-MT es→en (西译英)',
-      ModelType.opusMtItEn => 'OPUS-MT it→en (意译英)',
-      ModelType.opusMtRuEn => 'OPUS-MT ru→en (俄译英)',
-      ModelType.opusMtArEn => 'OPUS-MT ar→en (阿译英)',
-      ModelType.opusMtJapEn => 'OPUS-MT ja→en (日译英)',
-      ModelType.opusMtKoEn => 'OPUS-MT ko→en (韩译英)',
-      ModelType.opusMtZhDe => 'OPUS-MT zh→de (中译德)',
-      ModelType.opusMtDeZh => 'OPUS-MT de→zh (德译中)',
-      ModelType.opusMtZhIt => 'OPUS-MT zh→it (中译意)',
-      ModelType.opusMtZhVi => 'OPUS-MT zh→vi (中译越)',
-      ModelType.opusMtZhJap => 'OPUS-MT zh→ja (中译日)',
-      ModelType.opusMtFiZh => 'OPUS-MT fi→zh (芬译中)',
-      ModelType.opusMtSvZh => 'OPUS-MT sv→zh (瑞译中)',
-      ModelType.opusMtZhBg => 'OPUS-MT zh→bg (中译保)',
-      ModelType.opusMtZhFi => 'OPUS-MT zh→fi (中译芬)',
-      ModelType.opusMtZhHe => 'OPUS-MT zh→he (中译希)',
-      ModelType.opusMtZhMs => 'OPUS-MT zh→ms (中译马)',
-      ModelType.opusMtZhNl => 'OPUS-MT zh→nl (中译荷)',
-      ModelType.opusMtZhSv => 'OPUS-MT zh→sv (中译瑞)',
-      ModelType.opusMtZhUk => 'OPUS-MT zh→uk (中译乌)',
+      ModelType.opusMtEnZh => 'OPUS-MT en→zh (English to Chinese)',
+      ModelType.opusMtZhEn => 'OPUS-MT zh→en (Chinese to English)',
+      ModelType.opusMtEnDe => 'OPUS-MT en→de (English to German)',
+      ModelType.opusMtEnFr => 'OPUS-MT en→fr (English to French)',
+      ModelType.opusMtEnEs => 'OPUS-MT en→es (English to Spanish)',
+      ModelType.opusMtEnIt => 'OPUS-MT en→it (English to Italian)',
+      ModelType.opusMtEnRu => 'OPUS-MT en→ru (English to Russian)',
+      ModelType.opusMtEnAr => 'OPUS-MT en→ar (English to Arabic)',
+      ModelType.opusMtEnJap => 'OPUS-MT en→ja (English to Japanese)',
+      ModelType.opusMtEnKo => 'OPUS-MT en→ko (English to Korean)',
+      ModelType.opusMtDeEn => 'OPUS-MT de→en (German to English)',
+      ModelType.opusMtFrEn => 'OPUS-MT fr→en (French to English)',
+      ModelType.opusMtEsEn => 'OPUS-MT es→en (Spanish to English)',
+      ModelType.opusMtItEn => 'OPUS-MT it→en (Italian to English)',
+      ModelType.opusMtRuEn => 'OPUS-MT ru→en (Russian to English)',
+      ModelType.opusMtArEn => 'OPUS-MT ar→en (Arabic to English)',
+      ModelType.opusMtJapEn => 'OPUS-MT ja→en (Japanese to English)',
+      ModelType.opusMtKoEn => 'OPUS-MT ko→en (Korean to English)',
+      ModelType.opusMtZhDe => 'OPUS-MT zh→de (Chinese to German)',
+      ModelType.opusMtDeZh => 'OPUS-MT de→zh (German to Chinese)',
+      ModelType.opusMtZhIt => 'OPUS-MT zh→it (Chinese to Italian)',
+      ModelType.opusMtZhVi => 'OPUS-MT zh→vi (Chinese to Vietnamese)',
+      ModelType.opusMtZhJap => 'OPUS-MT zh→ja (Chinese to Japanese)',
+      ModelType.opusMtFiZh => 'OPUS-MT fi→zh (Finnish to Chinese)',
+      ModelType.opusMtSvZh => 'OPUS-MT sv→zh (Swedish to Chinese)',
+      ModelType.opusMtZhBg => 'OPUS-MT zh→bg (Chinese to Bulgarian)',
+      ModelType.opusMtZhFi => 'OPUS-MT zh→fi (Chinese to Finnish)',
+      ModelType.opusMtZhHe => 'OPUS-MT zh→he (Chinese to Hebrew)',
+      ModelType.opusMtZhMs => 'OPUS-MT zh→ms (Chinese to Malay)',
+      ModelType.opusMtZhNl => 'OPUS-MT zh→nl (Chinese to Dutch)',
+      ModelType.opusMtZhSv => 'OPUS-MT zh→sv (Chinese to Swedish)',
+      ModelType.opusMtZhUk => 'OPUS-MT zh→uk (Chinese to Ukrainian)',
     };
   }
 
   String get description {
     return switch (this) {
       ModelType.opusMtEnZh || ModelType.opusMtZhEn =>
-        'Encoder-Decoder 架构，专为中英互译优化\n专为长句和段落翻译设计',
-      _ => 'Helsinki-NLP OPUS-MT 翻译模型\n质量高、速度快',
+          'Encoder-Decoder architecture optimized for EN↔ZH\nDesigned for long sentences and paragraphs',
+      _ => 'Helsinki-NLP OPUS-MT translation model\nHigh quality, fast',
     };
   }
 
@@ -226,8 +226,8 @@ extension ModelTypeExtension on ModelType {
       ModelType.opusMtEnZh || ModelType.opusMtZhEn ||
       ModelType.opusMtEnJap || ModelType.opusMtJapEn ||
       ModelType.opusMtEnKo || ModelType.opusMtKoEn ||
-      ModelType.opusMtZhJap => '约400MB / ~400MB',
-      _ => '约100MB / ~100MB',
+      ModelType.opusMtZhJap => '~400MB',
+      _ => '~100MB',
     };
   }
 
@@ -411,6 +411,12 @@ extension ModelTypeExtension on ModelType {
       ModelType.opusMtZhUk => 'opus_mt_zh_uk',
     };
   }
+
+  bool get isMultiLingual => false;
+
+  String? getTargetLangCode(String targetLang) => null;
+
+  String get supportedLanguagesText => '';
 }
 
 @Riverpod(keepAlive: true)
@@ -451,19 +457,16 @@ class ModelManager extends _$ModelManager {
     await prefs.setString(_kCustomModelsKey, jsonStr);
   }
 
-  static const List<String> _requiredModelFiles = [
-    'model.bin',
-    'config.json',
-    'shared_vocabulary.json',
-  ];
-
   static bool isValidModelDirectory(String dirPath) {
     final dir = Directory(dirPath);
     if (!dir.existsSync()) return false;
-    for (final file in _requiredModelFiles) {
-      if (!File(path.join(dirPath, file)).existsSync()) return false;
+    if (File(path.join(dirPath, 'model.bin')).existsSync() &&
+        File(path.join(dirPath, 'config.json')).existsSync()) {
+      if (File(path.join(dirPath, 'shared_vocabulary.json')).existsSync()) return true;
+      if (File(path.join(dirPath, 'source_vocabulary.json')).existsSync() &&
+          File(path.join(dirPath, 'target_vocabulary.json')).existsSync()) return true;
     }
-    return true;
+    return false;
   }
 
   static final RegExp _opusMtPattern = RegExp(r'^opus-mt-([a-z]{2,3})-([a-z]{2,3})$');
@@ -507,12 +510,12 @@ class ModelManager extends _$ModelManager {
 
   Future<String?> importLocalModel(String folderPath) async {
     if (!isValidModelDirectory(folderPath)) {
-      return '文件夹缺少必需文件 (config.json, pytorch_model.bin, source.spm, target.spm, vocab.json)';
+      return 'Missing required files (model.bin, config.json, shared_vocabulary.json or source_vocabulary.json + target_vocabulary.json)';
     }
 
     final entry = parseFolderName(folderPath);
     if (entry == null) {
-      return '文件夹名格式不正确，需要 opus-mt-[l1]-[l2] 格式 (如 opus-mt-zh-de)，也支持 opus-mt-tc-big-en-ko 等非标准名称';
+      return 'Invalid folder name format\nSupported: opus-mt-[l1]-[l2] (e.g. opus-mt-zh-de)';
     }
 
     final existingKnown = ModelType.values.where(
@@ -527,7 +530,7 @@ class ModelManager extends _$ModelManager {
         sourceLang: pair.$1,
         targetLang: pair.$2,
         isEnabled: true,
-      ));
+      ),);
 
       final enabled = Set<ModelType>.from(state.enabledModelTypes);
       if (!enabled.contains(existingKnown.first)) {
@@ -598,14 +601,19 @@ class ModelManager extends _$ModelManager {
   }
 
   ModelType? getEnabledModelForLangPair(String sourceCode, String targetCode) {
+    return getEnabledModelsForLangPair(sourceCode, targetCode).firstOrNull;
+  }
+
+  List<ModelType> getEnabledModelsForLangPair(String sourceCode, String targetCode) {
+    final results = <ModelType>[];
     for (final type in state.enabledModelTypes) {
       final pair = type.languagePair;
       if (pair.$1 == sourceCode && pair.$2 == targetCode) {
         final entry = _registry.getEntry(type.folderName);
-        if (entry != null && entry.pathExists) return type;
+        if (entry != null && entry.pathExists) results.add(type);
       }
     }
-    return null;
+    return results;
   }
 
   Future<void> autoEnableDownloadedModels() async {
@@ -912,7 +920,7 @@ class ModelManager extends _$ModelManager {
     if (repoId == null) {
       state = state.copyWith(
         downloadStatus: ModelDownloadStatus.failed,
-        downloadError: '该模型暂不支持直接下载，请使用本地导入功能',
+        downloadError: 'This model does not support direct download. Please use local import.',
       );
       return;
     }
@@ -955,7 +963,7 @@ class ModelManager extends _$ModelManager {
         if (scopeRepoId == null) {
           state = state.copyWith(
             downloadStatus: ModelDownloadStatus.failed,
-            downloadError: '此模型在 ModelScope 上不可用，请切换到 HuggingFace 或 Auto Detect',
+            downloadError: 'This model is not available on ModelScope. Please switch to HuggingFace or Auto Detect.',
           );
           return;
         }
@@ -964,7 +972,7 @@ class ModelManager extends _$ModelManager {
         if (hfRepoId == null) {
           state = state.copyWith(
             downloadStatus: ModelDownloadStatus.failed,
-            downloadError: '此模型在 HuggingFace 上不可用，请切换到 ModelScope 或 Auto Detect',
+            downloadError: 'This model is not available on HuggingFace. Please switch to ModelScope or Auto Detect.',
           );
           return;
         }
@@ -1003,19 +1011,19 @@ class ModelManager extends _$ModelManager {
       } else {
         state = state.copyWith(
           downloadStatus: ModelDownloadStatus.failed,
-          downloadError: '下载失败，请重试',
+          downloadError: 'Download failed, please try again.',
         );
       }
     } catch (e) {
       if (_cancelToken?.isCancelled ?? false) {
         state = state.copyWith(
           downloadStatus: ModelDownloadStatus.idle,
-          downloadError: '下载已取消',
+          downloadError: 'Download cancelled.',
         );
       } else {
         state = state.copyWith(
           downloadStatus: ModelDownloadStatus.failed,
-          downloadError: '下载失败: ${e.toString()}',
+          downloadError: 'Download failed: ${e.toString()}',
         );
       }
     }
@@ -1036,12 +1044,12 @@ class ModelManager extends _$ModelManager {
         debugPrint('[ModelManager] ModelScope also failed ($e), trying HuggingFace as last resort...');
         if (_cancelToken?.isCancelled ?? false) return false;
         if (hfRepoId == null) {
-          throw Exception('所有下载源均不可用，请检查网络');
+          throw Exception('All download sources are unavailable. Please check your network.');
         }
         try {
           return await _downloadFromSource(hfRepoId, savePath, 'huggingface');
         } catch (e2) {
-          throw Exception('所有下载源均不可用，请检查网络');
+          throw Exception('All download sources are unavailable. Please check your network.');
         }
       }
     }
@@ -1055,7 +1063,7 @@ class ModelManager extends _$ModelManager {
         if (_cancelToken?.isCancelled ?? false) return false;
         if (scopeRepoId == null) {
           throw Exception(
-            '此模型在 ModelScope 上不可用，请尝试 HuggingFace （可能需要代理）或选择其他模型',
+            'This model is not available on ModelScope. Try HuggingFace (may require proxy) or choose another model.',
           );
         }
         return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
@@ -1067,7 +1075,7 @@ class ModelManager extends _$ModelManager {
       return await _downloadFromSource(scopeRepoId, savePath, 'modelscope');
     }
 
-    throw Exception('此模型无可用下载源');
+    throw Exception('No download source available for this model.');
   }
 
   Future<bool> _downloadFromSource(String repoId, String savePath, String source) async {

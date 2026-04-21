@@ -47,7 +47,7 @@ class AppLocalizations {
       'language': 'Language',
       'chinese': 'Chinese',
       'english': 'English',
-      'aiFeatures': 'AI Features',
+      'aiFeatures': 'AI Features (for sentences or paragraphs)',
       'aiModel': 'AI Model',
       'notInstalled': 'Not Installed',
       'download': 'Download',
@@ -60,8 +60,8 @@ class AppLocalizations {
       'about': 'About',
       'version': 'Version',
       'ecdictInfo': 'ECDICT (~3.3M entries)',
-      'completelyFree': 'Completely Free Dictionary',
-      'dictionarySettings': 'Dictionary Settings',
+      'realFree': 'Real Free Dictionary',
+      'dictionarySettings': 'Dictionary Settings (for word or short phrase)',
       'dictionaryManagement': 'Dictionary Management',
       'dictionaryReady': 'Dictionary Ready',
       'pleaseSelectDictionary': 'Please select dictionary file',
@@ -150,6 +150,112 @@ class AppLocalizations {
       'copySource': 'Copy Source',
       'copyTarget': 'Copy Translation',
       'reTranslate': 'Re-translate',
+      'removeFavoriteTitle': 'Remove from Favorites',
+      'removeFavoriteConfirm': 'Remove from favorites?',
+      'translateNav': 'Translate',
+      'speak': 'Play',
+      'share': 'Share',
+      'selectModelFolder': 'Select Model Folder',
+      'modelImportedSuccess': 'Model imported successfully',
+      'modelScopeUnavailable': 'This model is not available on ModelScope. Please switch to HuggingFace or Auto Detect.',
+      'huggingFaceUnavailableToast': 'HuggingFace unavailable. Please switch to ModelScope or Auto Detect.',
+      'downloadError': 'Download error: ',
+      'modelScopeModelUnavailable': 'This model is not available on ModelScope. Please switch to HuggingFace or Auto Detect.',
+      'modelScopeConnectionUnavailable': 'ModelScope connection unavailable. Please check your network.',
+      'huggingFaceConnectionUnavailable': 'HuggingFace connection unavailable. Please switch to ModelScope or Auto Detect.',
+      'noDownloadSourceAvailable': 'No download source available for this model.',
+      'allSourcesUnavailable': 'All download sources are unavailable. Please check your network.',
+      'wordNotFound': 'No dictionary entry found for "',
+      'queryError': 'Query error: ',
+      'addedToFavorites': 'Added to favorites',
+      'removedFromFavorites': 'Removed from favorites',
+      'favoriteTooltip': 'Favorite',
+      'noDictionaryEntryFound': 'No dictionary entry found',
+      'wordExample': 'Examples',
+      'modelNotDirectlyDownloadable': 'This model does not support direct download. Please use the local import feature.',
+      'downloadFailedRetry': 'Download failed, please try again.',
+      'downloadCancelled': 'Download cancelled.',
+      'dictionaryNotDirectlyDownloadable': 'This dictionary does not support direct download.',
+      'modelScopeModelUnavailableToast': 'This model is not available on ModelScope, please switch to HuggingFace or Auto Detect.',
+      'huggingFaceModelUnavailableToast': 'This model is not available on HuggingFace, please switch to ModelScope or Auto Detect.',
+      'noDownloadSourceAvailableToast': 'No download source available for this model.',
+      'noTranslationModel': 'No translation model available. Please download and enable the model pair from the model management page.',
+      'ctranslate2LibraryNotFound': 'CTranslate2 runtime library not found. Please ensure it is installed correctly.',
+      'allModelsTranslationFailed': 'All model translations failed.',
+      'selectMdictFile': 'Select MDict Dictionary File',
+      'mdictImportSuccess': 'Successfully imported: ',
+      'mdictImportFailed': 'Import failed. Please ensure it is a valid .mdx file.',
+      'selectStarDictFolder': 'Select StarDict Dictionary Folder',
+      'noIfoFileFound': 'No .ifo file found. Please ensure it is a valid StarDict dictionary folder.',
+      'starDictImported': 'StarDict dictionary imported: ',
+      'dictsGroupedByLangDesc': 'Grouped by source language. Tap to expand and see available dictionaries.',
+      'installedCountDesc': 'installed',
+      'selectInstalledDicts': 'Select Installed Dictionaries',
+      'selectDictsToUse': 'Select dictionaries to use (multiple)',
+      'deleteDictTooltip': 'Delete',
+      'mdictFormatImported': 'MDict format (imported)',
+      'importDictionaryTitle': 'Import Dictionary',
+      'importDictionaryDesc': 'Supports .mdx format and StarDict folders',
+      'selectMdxFile': 'Select .mdx File',
+      'selectStarDictFolderBtn': 'Select StarDict Folder',
+      'availableLanguagePairs': 'Available Language Pairs',
+      'pleaseSelectDictsFirst': 'Please select dictionaries first',
+      'modelDisplayNameEnZh': 'OPUS-MT en→zh (English to Chinese)',
+      'modelDisplayNameZhEn': 'OPUS-MT zh→en (Chinese to English)',
+      'modelDisplayNameEnDe': 'OPUS-MT en→de (English to German)',
+      'modelDisplayNameEnFr': 'OPUS-MT en→fr (English to French)',
+      'modelDisplayNameEnEs': 'OPUS-MT en→es (English to Spanish)',
+      'modelDisplayNameEnIt': 'OPUS-MT en→it (English to Italian)',
+      'modelDisplayNameEnRu': 'OPUS-MT en→ru (English to Russian)',
+      'modelDisplayNameEnAr': 'OPUS-MT en→ar (English to Arabic)',
+      'modelDisplayNameEnJap': 'OPUS-MT en→ja (English to Japanese)',
+      'modelDisplayNameEnKo': 'OPUS-MT en→ko (English to Korean)',
+      'modelDisplayNameDeEn': 'OPUS-MT de→en (German to English)',
+      'modelDisplayNameFrEn': 'OPUS-MT fr→en (French to English)',
+      'modelDisplayNameEsEn': 'OPUS-MT es→en (Spanish to English)',
+      'modelDisplayNameItEn': 'OPUS-MT it→en (Italian to English)',
+      'modelDisplayNameRuEn': 'OPUS-MT ru→en (Russian to English)',
+      'modelDisplayNameArEn': 'OPUS-MT ar→en (Arabic to English)',
+      'modelDisplayNameJapEn': 'OPUS-MT ja→en (Japanese to English)',
+      'modelDisplayNameKoEn': 'OPUS-MT ko→en (Korean to English)',
+      'modelDisplayNameZhDe': 'OPUS-MT zh→de (Chinese to German)',
+      'modelDisplayNameDeZh': 'OPUS-MT de→zh (German to Chinese)',
+      'modelDisplayNameZhIt': 'OPUS-MT zh→it (Chinese to Italian)',
+      'modelDisplayNameZhVi': 'OPUS-MT zh→vi (Chinese to Vietnamese)',
+      'modelDisplayNameZhJap': 'OPUS-MT zh→ja (Chinese to Japanese)',
+      'modelDisplayNameFiZh': 'OPUS-MT fi→zh (Finnish to Chinese)',
+      'modelDisplayNameSvZh': 'OPUS-MT sv→zh (Swedish to Chinese)',
+      'modelDisplayNameZhBg': 'OPUS-MT zh→bg (Chinese to Bulgarian)',
+      'modelDisplayNameZhFi': 'OPUS-MT zh→fi (Chinese to Finnish)',
+      'modelDisplayNameZhHe': 'OPUS-MT zh→he (Chinese to Hebrew)',
+      'modelDisplayNameZhMs': 'OPUS-MT zh→ms (Chinese to Malay)',
+      'modelDisplayNameZhNl': 'OPUS-MT zh→nl (Chinese to Dutch)',
+      'modelDisplayNameZhSv': 'OPUS-MT zh→sv (Chinese to Swedish)',
+      'modelDisplayNameZhUk': 'OPUS-MT zh→uk (Chinese to Ukrainian)',
+      'statusAvailable': 'OK',
+      'statusUnavailable': 'Down',
+      'modelDownloadCompletedToast': 'Model downloaded successfully',
+      'refreshSources': 'Refresh',
+      'translationModelsTitle': 'Translation Models',
+      'modelsGroupedByLangDesc': 'Grouped by source language. Tap to expand and see available language pairs.',
+      'localOnlyLabel': 'Local only',
+      'selectToDownloadTooltip': 'Select to download',
+      'downloadSourceTitle': 'Download Source',
+      'autoDetectOption': 'Auto Detect',
+      'autoDetectOptionDesc': 'Automatically select best download source',
+      'huggingfaceOption': 'Hugging Face',
+      'huggingfaceOptionDesc': 'Official source (may require proxy)',
+      'modelscopeOption': 'ModelScope (Alibaba)',
+      'modelscopeOptionDesc': 'Alibaba Cloud model hub (recommended in China)',
+      'localImportTitle': 'Local Import',
+      'localImportDescription': 'Import CTranslate2 format model folder from local disk\nFolder name format:\n  \u00B7 opus-mt-[l1]-[l2] (e.g. opus-mt-zh-de)\nMust contain: model.bin, config.json, shared_vocabulary.json',
+      'importedCustomModelsTitle': 'Imported Custom Models',
+      'downloadingTitle': 'Downloading...',
+      'closeButton': 'Close',
+      'installedModelsTitle': 'Installed Models',
+      'installedModelsDesc': 'Checked models will be used automatically during translation (matched by language pair)',
+      'installedCount': 'installed',
+      'architectureOverviewText': 'Architecture Overview\n\n\u2022 Encoder-Decoder architecture optimized for long sentence translation\n\nTranslation Flow:\n1. Words/Phrases \u2192 StarDict Dictionary\n2. Sentences/Paragraphs \u2192 Encoder-Decoder Model\n3. Dictionary not found \u2192 Encoder-Decoder fallback',
     },
     'zh': {
       'appTitle': 'rftranslator',
@@ -173,7 +279,7 @@ class AppLocalizations {
       'language': '\u8BED\u8A00',
       'chinese': '\u4E2D\u6587',
       'english': '\u82F1\u6587',
-      'aiFeatures': 'AI \u529F\u80FD',
+      'aiFeatures': 'AI \u529F\u80FD\uFF08\u7528\u4E8E\u53E5\u5B50\u6216\u6BB5\u843D\u7FFB\u8BD1\uFF09',
       'aiModel': 'AI \u6A21\u578B',
       'notInstalled': '\u672A\u5B89\u88C5',
       'download': '\u4E0B\u8F7D',
@@ -186,8 +292,8 @@ class AppLocalizations {
       'about': '\u5173\u4E8E',
       'version': '\u7248\u672C',
       'ecdictInfo': 'ECDICT (~330\u4E07\u8BCD\u6761)',
-      'completelyFree': '\u5B8C\u5168\u514D\u8D39\u7684\u5B57\u5178',
-      'dictionarySettings': '\u8BCD\u5178\u8BBE\u7F6E',
+      'realFree': '\u5B8C\u5168\u514D\u8D39\u7684\u5B57\u5178',
+      'dictionarySettings': '\u8BCD\u5178\u8BBE\u7F6E\uFF08\u9002\u7528\u4E8E\u5355\u8BCD\u6216\u77ED\u8BED\u7FFB\u8BD1\uFF09',
       'dictionaryManagement': '\u8BCD\u5178\u7BA1\u7406',
       'dictionaryReady': '\u8BCD\u5178\u5DF2\u5C31\u7EEA',
       'pleaseSelectDictionary': '\u8BF7\u9009\u62E9\u8BCD\u5178\u6587\u4EF6',
@@ -276,6 +382,80 @@ class AppLocalizations {
       'copySource': '\u590D\u5236\u6E90\u6587',
       'copyTarget': '\u590D\u5236\u8BD1\u6587',
       'reTranslate': '\u91CD\u65B0\u7FFB\u8BD1',
+      'removeFavoriteTitle': '\u53D6\u6D88\u6536\u85CF',
+      'removeFavoriteConfirm': '\u786E\u5B9A\u8981\u53D6\u6D88\u6536\u85CF\u5417\uFF1F',
+      'translateNav': '\u7FFB\u8BD1',
+      'speak': '\u64AD\u653E',
+      'share': '\u5206\u4EAB',
+      'selectModelFolder': '\u9009\u62E9\u6A21\u578B\u6587\u4EF6\u5939',
+      'modelImportedSuccess': '\u6A21\u578B\u5BFC\u5165\u6210\u529F',
+      'modelScopeUnavailable': '\u6B64\u6A21\u578B\u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'huggingFaceUnavailableToast': 'HuggingFace \u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'downloadError': '\u4E0B\u8F7D\u51FA\u9519: ',
+      'modelScopeModelUnavailable': '\u6B64\u6A21\u578B\u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'modelScopeConnectionUnavailable': 'ModelScope \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC',
+      'huggingFaceConnectionUnavailable': 'HuggingFace \u8FDE\u63A5\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'noDownloadSourceAvailable': '\u6B64\u6A21\u578B\u65E0\u53EF\u7528\u4E0B\u8F7D\u6E90',
+      'allSourcesUnavailable': '\u6240\u6709\u4E0B\u8F7D\u6E90\u5747\u4E0D\u53EF\u7528\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC',
+      'wordNotFound': '\u672A\u627E\u5230 "',
+      'queryError': '\u67E5\u8BE2\u51FA\u9519: ',
+      'addedToFavorites': '\u5DF2\u6DFB\u52A0\u5230\u6536\u85CF',
+      'removedFromFavorites': '\u5DF2\u53D6\u6D88\u6536\u85CF',
+      'favoriteTooltip': '\u6536\u85CF',
+      'noDictionaryEntryFound': '\u672A\u627E\u5230\u8BCD\u5178\u6761\u76EE',
+      'wordExample': '\u4F8B\u53E5',
+      'modelNotDirectlyDownloadable': '\u8BE5\u6A21\u578B\u6682\u4E0D\u652F\u6301\u76F4\u63A5\u4E0B\u8F7D\uFF0C\u8BF7\u4F7F\u7528\u672C\u5730\u5BFC\u5165\u529F\u80FD',
+      'downloadFailedRetry': '\u4E0B\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5',
+      'downloadCancelled': '\u4E0B\u8F7D\u5DF2\u53D6\u6D88',
+      'dictionaryNotDirectlyDownloadable': '\u8BE5\u8BCD\u5178\u6682\u4E0D\u652F\u6301\u76F4\u63A5\u4E0B\u8F7D',
+      'modelScopeModelUnavailableToast': '\u6B64\u6A21\u578B\u5728 ModelScope \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 HuggingFace \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'huggingFaceModelUnavailableToast': '\u6B64\u6A21\u578B\u5728 HuggingFace \u4E0A\u4E0D\u53EF\u7528\uFF0C\u8BF7\u5207\u6362\u5230 ModelScope \u6216\u81EA\u52A8\u68C0\u6D4B',
+      'noDownloadSourceAvailableToast': '\u6B64\u6A21\u578B\u65E0\u53EF\u7528\u4E0B\u8F7D\u6E90',
+      'noTranslationModel': '\u6CA1\u6709\u53EF\u7528\u7684\u7FFB\u8BD1\u6A21\u578B\uFF0C\u8BF7\u5148\u5728\u6A21\u578B\u7BA1\u7406\u9875\u9762\u4E0B\u8F7D\u5E76\u542F\u7528\u6A21\u578B',
+      'ctranslate2LibraryNotFound': 'CTranslate2 \u8FD0\u884C\u5E93\u672A\u627E\u5230\uFF0C\u8BF7\u786E\u4FDD\u5DF2\u6B63\u786E\u5B89\u88C5',
+      'allModelsTranslationFailed': '\u6240\u6709\u6A21\u578B\u7FFB\u8BD1\u5931\u8D25',
+      'selectMdictFile': '\u9009\u62E9 MDict \u8BCD\u5178\u6587\u4EF6',
+      'mdictImportSuccess': '\u6210\u529F\u5BFC\u5165: ',
+      'mdictImportFailed': '\u5BFC\u5165\u5931\u8D25\uFF0C\u8BF7\u786E\u4FDD\u662F\u6709\u6548\u7684 .mdx \u6587\u4EF6',
+      'selectStarDictFolder': '\u9009\u62E9 StarDict \u8BCD\u5178\u6587\u4EF6\u5939',
+      'noIfoFileFound': '\u672A\u627E\u5230 .ifo \u6587\u4EF6\uFF0C\u8BF7\u786E\u4FDD\u662F\u6709\u6548\u7684 StarDict \u8BCD\u5178\u6587\u4EF6\u5939',
+      'starDictImported': 'StarDict \u8BCD\u5178\u5DF2\u5BFC\u5165: ',
+      'dictsGroupedByLangDesc': '\u6309\u6E90\u8BED\u8A00\u5206\u7EC4\uFF0C\u70B9\u51FB\u5C55\u5F00\u67E5\u770B\u53EF\u4E0B\u8F7D\u7684\u8BCD\u5178',
+      'installedCountDesc': '\u5DF2\u5B89\u88C5',
+      'selectInstalledDicts': '\u9009\u62E9\u5DF2\u5B89\u88C5\u7684\u8BCD\u5178',
+      'selectDictsToUse': '\u9009\u62E9\u8981\u4F7F\u7528\u7684\u8BCD\u5178\uFF08\u53EF\u591A\u9009\uFF09',
+      'deleteDictTooltip': '\u5220\u9664',
+      'mdictFormatImported': 'MDict \u683C\u5F0F\uFF08\u7528\u6237\u5BFC\u5165\uFF09',
+      'importDictionaryTitle': '\u5BFC\u5165\u8BCD\u5178',
+      'importDictionaryDesc': '\u652F\u6301 .mdx \u683C\u5F0F\u548C StarDict \u6587\u4EF6\u5939',
+      'selectMdxFile': '\u9009\u62E9 .mdx \u6587\u4EF6',
+      'selectStarDictFolderBtn': '\u9009\u62E9 StarDict \u6587\u4EF6\u5939',
+      'availableLanguagePairs': '\u53EF\u7528\u7684\u8BED\u8A00\u5BF9',
+      'pleaseSelectDictsFirst': '\u8BF7\u5148\u9009\u62E9\u8BCD\u5178',
+      'statusAvailable': '\u53EF\u7528',
+      'statusUnavailable': '\u4E0D\u53EF\u7528',
+      'modelDownloadCompletedToast': '\u6A21\u578B\u4E0B\u8F7D\u5B8C\u6210',
+      'refreshSources': '\u5237\u65B0',
+      'translationModelsTitle': '\u7FFB\u8BD1\u6A21\u578B',
+      'modelsGroupedByLangDesc': '\u6309\u6E90\u8BED\u8A00\u5206\u7EC4\uFF0C\u70B9\u51FB\u5C55\u5F00\u67E5\u770B\u53EF\u4E0B\u8F7D\u7684\u8BED\u5BF9\u6A21\u578B',
+      'localOnlyLabel': '\u4EC5\u672C\u5730',
+      'selectToDownloadTooltip': '\u9009\u62E9\u4E0B\u8F7D',
+      'downloadSourceTitle': '\u4E0B\u8F7D\u6E90',
+      'autoDetectOption': '\u81EA\u52A8\u68C0\u6D4B',
+      'autoDetectOptionDesc': '\u81EA\u52A8\u9009\u62E9\u6700\u4F73\u4E0B\u8F7D\u6E90',
+      'huggingfaceOption': 'Hugging Face',
+      'huggingfaceOptionDesc': '\u5B98\u65B9\u6E90\uFF08\u53EF\u80FD\u9700\u8981\u4EE3\u7406\uFF09',
+      'modelscopeOption': 'ModelScope\uFF08\u963F\u91CC\uFF09',
+      'modelscopeOptionDesc': '\u963F\u91CC\u4E91\u6A21\u578B\u5E93\uFF08\u56FD\u5185\u63A8\u8350\uFF09',
+      'localImportTitle': '\u672C\u5730\u5BFC\u5165',
+      'localImportDescription': '\u4ECE\u672C\u5730\u78C1\u76D8\u5BFC\u5165 CTranslate2 \u683C\u5F0F\u6A21\u578B\u6587\u4EF6\u5939\n\u6587\u4EF6\u5939\u540D\u683C\u5F0F:\n  \u00B7 opus-mt-[l1]-[l2] \uFF08\u5982 opus-mt-zh-de\uFF09\n\u9700\u5305\u542B: model.bin, config.json, shared_vocabulary.json',
+      'importedCustomModelsTitle': '\u5DF2\u5BFC\u5165\u7684\u81EA\u5B9A\u4E49\u6A21\u578B',
+      'downloadingTitle': '\u6B63\u5728\u4E0B\u8F7D...',
+      'closeButton': '\u5173\u95ED',
+      'installedModelsTitle': '\u5DF2\u5B89\u88C5\u6A21\u578B',
+      'installedModelsDesc': '\u52FE\u9009\u7684\u6A21\u578B\u5C06\u5728\u7FFB\u8BD1\u65F6\u81EA\u52A8\u4F7F\u7528\uFF08\u6839\u636E\u8BED\u5BF9\u5339\u914D\uFF09',
+      'installedCount': '\u5DF2\u5B89\u88C5',
+      'architectureOverviewText': '\u67B6\u6784\u8BF4\u660E\n\n\u2022 Encoder-Decoder \u67B6\u6784\u6A21\u578B\uFF0C\u4E13\u4E3A\u957F\u53E5\u7FFB\u8BD1\u4F18\u5316\n\n\u7FFB\u8BD1\u6D41\u7A0B:\n1. \u5355\u8BCD/\u77ED\u8BED \u2192 StarDict \u8BCD\u5178\n2. \u957F\u53E5/\u6BB5\u843D \u2192 Encoder-Decoder \u6A21\u578B\n3. \u8BCD\u5178\u672A\u627E\u5230 \u2192 Encoder-Decoder \u5156\u5E95',
     },
   };
 
@@ -315,7 +495,7 @@ class AppLocalizations {
   String get about => _t('about');
   String get version => _t('version');
   String get ecdictInfo => _t('ecdictInfo');
-  String get completelyFree => _t('completelyFree');
+  String get realFree => _t('realFree');
 
   String get dictionarySettings => _t('dictionarySettings');
   String get dictionaryManagement => _t('dictionaryManagement');
@@ -406,6 +586,80 @@ class AppLocalizations {
   String get copySource => _t('copySource');
   String get copyTarget => _t('copyTarget');
   String get reTranslate => _t('reTranslate');
+  String get removeFavoriteTitle => _t('removeFavoriteTitle');
+  String get removeFavoriteConfirm => _t('removeFavoriteConfirm');
+  String get translateNav => _t('translateNav');
+  String get speak => _t('speak');
+  String get share => _t('share');
+  String get selectModelFolder => _t('selectModelFolder');
+  String get modelImportedSuccess => _t('modelImportedSuccess');
+  String get modelScopeUnavailable => _t('modelScopeUnavailable');
+  String get huggingFaceUnavailableToast => _t('huggingFaceUnavailableToast');
+  String get downloadError => _t('downloadError');
+  String get modelScopeModelUnavailable => _t('modelScopeModelUnavailable');
+  String get modelScopeConnectionUnavailable => _t('modelScopeConnectionUnavailable');
+  String get huggingFaceConnectionUnavailable => _t('huggingFaceConnectionUnavailable');
+  String get noDownloadSourceAvailable => _t('noDownloadSourceAvailable');
+  String get allSourcesUnavailable => _t('allSourcesUnavailable');
+  String get wordNotFound => _t('wordNotFound');
+  String get queryError => _t('queryError');
+  String get addedToFavorites => _t('addedToFavorites');
+  String get removedFromFavorites => _t('removedFromFavorites');
+  String get favoriteTooltip => _t('favoriteTooltip');
+  String get noDictionaryEntryFound => _t('noDictionaryEntryFound');
+  String get wordExample => _t('wordExample');
+  String get modelNotDirectlyDownloadable => _t('modelNotDirectlyDownloadable');
+  String get downloadFailedRetry => _t('downloadFailedRetry');
+  String get downloadCancelled => _t('downloadCancelled');
+  String get dictionaryNotDirectlyDownloadable => _t('dictionaryNotDirectlyDownloadable');
+  String get modelScopeModelUnavailableToast => _t('modelScopeModelUnavailableToast');
+  String get huggingFaceModelUnavailableToast => _t('huggingFaceModelUnavailableToast');
+  String get noDownloadSourceAvailableToast => _t('noDownloadSourceAvailableToast');
+  String get noTranslationModel => _t('noTranslationModel');
+  String get ctranslate2LibraryNotFound => _t('ctranslate2LibraryNotFound');
+  String get allModelsTranslationFailed => _t('allModelsTranslationFailed');
+  String get selectMdictFile => _t('selectMdictFile');
+  String get mdictImportSuccess => _t('mdictImportSuccess');
+  String get mdictImportFailed => _t('mdictImportFailed');
+  String get selectStarDictFolder => _t('selectStarDictFolder');
+  String get noIfoFileFound => _t('noIfoFileFound');
+  String get starDictImported => _t('starDictImported');
+  String get dictsGroupedByLangDesc => _t('dictsGroupedByLangDesc');
+  String get installedCountDesc => _t('installedCountDesc');
+  String get selectInstalledDicts => _t('selectInstalledDicts');
+  String get selectDictsToUse => _t('selectDictsToUse');
+  String get deleteDictTooltip => _t('deleteDictTooltip');
+  String get mdictFormatImported => _t('mdictFormatImported');
+  String get importDictionaryTitle => _t('importDictionaryTitle');
+  String get importDictionaryDesc => _t('importDictionaryDesc');
+  String get selectMdxFile => _t('selectMdxFile');
+  String get selectStarDictFolderBtn => _t('selectStarDictFolderBtn');
+  String get availableLanguagePairs => _t('availableLanguagePairs');
+  String get pleaseSelectDictsFirst => _t('pleaseSelectDictsFirst');
+  String get statusAvailable => _t('statusAvailable');
+  String get statusUnavailable => _t('statusUnavailable');
+  String get modelDownloadCompletedToast => _t('modelDownloadCompletedToast');
+  String get refreshSources => _t('refreshSources');
+  String get translationModelsTitle => _t('translationModelsTitle');
+  String get modelsGroupedByLangDesc => _t('modelsGroupedByLangDesc');
+  String get localOnlyLabel => _t('localOnlyLabel');
+  String get selectToDownloadTooltip => _t('selectToDownloadTooltip');
+  String get downloadSourceTitle => _t('downloadSourceTitle');
+  String get autoDetectOption => _t('autoDetectOption');
+  String get autoDetectOptionDesc => _t('autoDetectOptionDesc');
+  String get huggingfaceOption => _t('huggingfaceOption');
+  String get huggingfaceOptionDesc => _t('huggingfaceOptionDesc');
+  String get modelscopeOption => _t('modelscopeOption');
+  String get modelscopeOptionDesc => _t('modelscopeOptionDesc');
+  String get localImportTitle => _t('localImportTitle');
+  String get localImportDescription => _t('localImportDescription');
+  String get importedCustomModelsTitle => _t('importedCustomModelsTitle');
+  String get downloadingTitle => _t('downloadingTitle');
+  String get closeButton => _t('closeButton');
+  String get installedModelsTitle => _t('installedModelsTitle');
+  String get installedModelsDesc => _t('installedModelsDesc');
+  String get installedCount => _t('installedCount');
+  String get architectureOverviewText => _t('architectureOverviewText');
 }
 
 class _AppLocalizationsDelegate

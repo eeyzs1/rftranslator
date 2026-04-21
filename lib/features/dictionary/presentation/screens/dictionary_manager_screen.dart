@@ -56,11 +56,12 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
   }
 
   Future<void> _importMDict(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final localeCode = Localizations.localeOf(context).languageCode;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['mdx'],
-      dialogTitle: localeCode == 'zh' ? '选择 MDict 词典文件' : 'Select MDict Dictionary File',
+      dialogTitle: l10n.selectMdictFile,
     );
 
     if (result == null || result.files.isEmpty) return;
@@ -77,22 +78,23 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
       AppToast.show(
         context,
         localeCode == 'zh'
-            ? '成功导入: ${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})'
-            : 'Imported: ${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})',
+            ? '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})'
+            : '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})',
       );
       setState(() {});
     } else {
       AppToast.show(
         context,
-        localeCode == 'zh' ? '导入失败，请确保是有效的 .mdx 文件' : 'Import failed. Please ensure it is a valid .mdx file.',
+        l10n.mdictImportFailed,
       );
     }
   }
 
   Future<void> _importStarDictFolder(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final localeCode = Localizations.localeOf(context).languageCode;
     final String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: localeCode == 'zh' ? '选择 StarDict 词典文件夹' : 'Select StarDict Dictionary Folder',
+      dialogTitle: l10n.selectStarDictFolder,
     );
     if (selectedDirectory == null) return;
 
@@ -107,7 +109,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
       if (mounted) {
         AppToast.show(
           context,
-          localeCode == 'zh' ? '未找到 .ifo 文件，请确保是有效的 StarDict 词典文件夹' : 'No .ifo file found. Please ensure it is a valid StarDict dictionary folder.',
+          localeCode == 'zh' ? l10n.noIfoFileFound : l10n.noIfoFileFound,
         );
       }
       return;
@@ -120,7 +122,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     if (!mounted) return;
     AppToast.show(
       context,
-      localeCode == 'zh' ? 'StarDict 词典已导入: ${path.basename(ifoPath)}' : 'StarDict dictionary imported: ${path.basename(ifoPath)}',
+      localeCode == 'zh' ? '${l10n.starDictImported}${path.basename(ifoPath)}' : '${l10n.starDictImported}${path.basename(ifoPath)}',
     );
     setState(() {});
   }
@@ -211,9 +213,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh'
-                            ? '按源语言分组，点击展开查看可下载的词典'
-                            : 'Grouped by source language. Tap to expand and see available dictionaries.',
+                        l10n.dictsGroupedByLangDesc,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -248,9 +248,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                                 ),
                               ),
                               subtitle: Text(
-                                localeCode == 'zh'
-                                    ? '$downloadedCount/${dicts.length} 已安装'
-                                    : '$downloadedCount/${dicts.length} installed',
+                                '$downloadedCount/${dicts.length} ${l10n.installedCountDesc}',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               trailing: Icon(
@@ -548,12 +546,12 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        localeCode == 'zh' ? '选择已安装的词典' : 'Select Installed Dictionaries',
+                        l10n.selectInstalledDicts,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh' ? '选择要使用的词典（可多选）' : 'Select dictionaries to use (multiple)',
+                        l10n.selectDictsToUse,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -587,12 +585,12 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                                         setState(() {});
                                       }
                                     },
-                                    tooltip: localeCode == 'zh' ? '删除' : 'Delete',
+                                    tooltip: l10n.deleteDictTooltip,
                                   ),
                               ],
                             ),
                             subtitle: Text(meta.isMDict
-                                ? (localeCode == 'zh' ? 'MDict 格式（用户导入）' : 'MDict format (imported)')
+                                ? l10n.mdictFormatImported
                                 : meta.description(localeCode),),
                             value: isSelected,
                             onChanged: dictState.downloadStatus == DownloadStatus.downloading
@@ -606,14 +604,12 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                       const Divider(),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh' ? '导入词典' : 'Import Dictionary',
+                        l10n.importDictionaryTitle,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        localeCode == 'zh'
-                            ? '支持 .mdx 格式和 StarDict 文件夹'
-                            : 'Supports .mdx format and StarDict folders',
+                        l10n.importDictionaryDesc,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.secondary,
                         ),
@@ -624,7 +620,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         child: OutlinedButton.icon(
                           onPressed: () => _importMDict(context),
                           icon: const Icon(Icons.upload_file, size: 18),
-                          label: Text(localeCode == 'zh' ? '选择 .mdx 文件' : 'Select .mdx File'),
+                          label: Text(l10n.selectMdxFile),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -633,14 +629,14 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         child: OutlinedButton.icon(
                           onPressed: () => _importStarDictFolder(context),
                           icon: const Icon(Icons.folder_open, size: 18),
-                          label: Text(localeCode == 'zh' ? '选择 StarDict 文件夹' : 'Select StarDict Folder'),
+                          label: Text(l10n.selectStarDictFolderBtn),
                         ),
                       ),
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 8),
                       Text(
-                        localeCode == 'zh' ? '可用的语言对' : 'Available Language Pairs',
+                        l10n.availableLanguagePairs,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
@@ -664,7 +660,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           child: Text(
-                            localeCode == 'zh' ? '请先选择词典' : 'Please select dictionaries first',
+                            l10n.pleaseSelectDictsFirst,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                             ),
