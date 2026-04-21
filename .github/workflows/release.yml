@@ -56,14 +56,115 @@ jobs:
           files: ${{ steps.prep.outputs.BASE_NAME }}.zip
           generate_release_notes: true
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $installerUrl = "https://jrsoftware.org/download.php/is.exe"
+          $installerPath = "$env:TEMP\is.exe"
+          Write-Host "Downloading Inno Setup..."
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+          Write-Host "Installing Inno Setup..."
+          Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /NORESTART /SP-" -Wait
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $isccPath) {
+            Write-Host "Inno Setup installed successfully at: $isccPath"
+          } else {
+            Write-Host "ERROR: ISCC.exe not found at expected path"
+            Get-ChildItem "C:\Program Files (x86)\Inno Setup 6" -ErrorAction SilentlyContinue
+            exit 1
+          }
+
       - name: Compile Inno Setup installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
-        with:
-          path: tools/installer/rftranslator.iss
-          options: |
-            /DAppVersion=${{ steps.prep.outputs.VERSION }}
-            /DSourceDir=${{ steps.prep.outputs.BUILD_DIR }}
-            /DOutputDir=${{ github.workspace }}\tools\installer\output
+        shell: pwsh
+        run: |
+          $version = "${{ steps.prep.outputs.VERSION }}"
+          $sourceDir = "${{ steps.prep.outputs.BUILD_DIR }}"
+          $outputDir = "${{ github.workspace }}\tools\installer\output"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+          $issContent = @"
+          #define AppName "rftranslator"
+          #define AppExeName "rftranslator.exe"
+          #define AppPublisher "rftranslator"
+          #define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}"
+          #define AppVersion "$version"
+          #define SourceDir "$sourceDir"
+          #define OutputDir "$outputDir"
+
+          [Setup]
+          AppId={#AppGUID}
+          AppName={#AppName}
+          AppVersion={#AppVersion}
+          AppVerName={#AppName} {#AppVersion}
+          AppPublisher={#AppPublisher}
+          DefaultDirName={autopf}\{#AppName}
+          DefaultGroupName={#AppName}
+          AllowNoIcons=yes
+          OutputDir={#OutputDir}
+          OutputBaseFilename={#AppName}-{#AppVersion}-setup
+          Compression=lzma2/ultra64
+          SolidCompression=yes
+          WizardStyle=modern
+          PrivilegesRequiredOverridesAllowed=dialog
+          UninstallDisplayIcon={app}\{#AppExeName}
+          CreateAppDir=yes
+          DisableWelcomePage=no
+          DisableDirPage=no
+          DisableProgramGroupPage=no
+
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+          Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+          [Files]
+          Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+          Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(AppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+          [Registry]
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayName"; ValueData: "{#AppName}"
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "UninstallString"; ValueData: """{uninstallexe}"" /_?=""{app}"""
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "QuietUninstallString"; ValueData: """{uninstallexe}"" /silent /_?=""{app}"""
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "InstallLocation"; ValueData: "{app}"
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "Publisher"; ValueData: "{#AppPublisher}"
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoModify"; ValueData: 1
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoRepair"; ValueData: 1
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: ""; ValueData: "{app}\{#AppExeName}"
+          Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{#AppExeName}"; ValueType: string; ValueName: "Path"; ValueData: "{app}"
+          "@
+
+          $issPath = "${{ github.workspace }}\tools\installer\build.iss"
+          $issContent | Out-File -FilePath $issPath -Encoding UTF8
+
+          Write-Host "Generated ISS file at: $issPath"
+          Write-Host "SourceDir: $sourceDir"
+          Write-Host "OutputDir: $outputDir"
+          Write-Host "AppVersion: $version"
+
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          Write-Host "Running ISCC..."
+          & $isccPath $issPath
+          Write-Host "ISCC completed with exit code: $LASTEXITCODE"
+
+          $setupExe = Join-Path $outputDir "rftranslator-$version-setup.exe"
+          if (Test-Path $setupExe) {
+            Write-Host "Installer created successfully: $setupExe"
+            $fileSize = (Get-Item $setupExe).Length / 1MB
+            Write-Host "Installer size: $([math]::Round($fileSize, 2)) MB"
+          } else {
+            Write-Host "ERROR: Installer not found at expected path: $setupExe"
+            Get-ChildItem $outputDir -ErrorAction SilentlyContinue
+            exit 1
+          }
 
       - name: Upload Installer to Release
         uses: softprops/action-gh-release@v2
