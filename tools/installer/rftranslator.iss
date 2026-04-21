@@ -5,6 +5,12 @@
 #define AppExeName "rftranslator.exe"
 #define AppPublisher "rftranslator"
 #define AppGUID "{{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+#ifndef AppVersion
+  #define AppVersion "0.0.0"
+#endif
+#ifndef SourceDir
+  #define SourceDir ".\build"
+#endif
 #ifndef OutputDir
   #define OutputDir ".\output"
 #endif
@@ -24,8 +30,6 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\{#AppExeName}
 CreateAppDir=yes
 DisableWelcomePage=no
@@ -56,7 +60,6 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGU
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "InstallLocation"; ValueData: "{app}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "DisplayVersion"; ValueData: "{#AppVersion}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: string; ValueName: "Publisher"; ValueData: "{#AppPublisher}"
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "EstimatedSize"; ValueData: 0; Flags: dontcreatekey
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoModify"; ValueData: 1
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{#AppGUID}"; ValueType: dword; ValueName: "NoRepair"; ValueData: 1
 

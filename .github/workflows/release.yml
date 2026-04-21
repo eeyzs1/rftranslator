@@ -52,41 +52,54 @@ jobs:
 
       - name: Install Inno Setup
         shell: pwsh
-        run: |
-          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
-          if ($iscc) {
-            Write-Host "Inno Setup already installed at: $($iscc.Source)"
-          } else {
-            choco install innosetup -y
-          }
+        run: choco install innosetup -y
 
       - name: Build Inno Setup installer
-        shell: cmd
+        shell: pwsh
         run: |
-          set APP_VER=${{ steps.prep.outputs.VERSION }}
-          set SRC_DIR=${{ steps.prep.outputs.BUILD_DIR }}
-          set ISS_PATH=${{ github.workspace }}\tools\installer\rftranslator.iss
-          set OUTPUT_DIR=${{ github.workspace }}\tools\installer\output
+          $appVer = "${{ steps.prep.outputs.VERSION }}".Trim()
+          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}".Trim()
+          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
+          $outputDir = "${{ github.workspace }}\tools\installer\output"
           
-          echo Creating output directory...
-          if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
           
-          echo AppVersion=%APP_VER%
-          echo SourceDir=%SRC_DIR%
-          echo OutputDir=%OUTPUT_DIR%
-          echo ISS_PATH=%ISS_PATH%
+          $isccPath = Get-ChildItem "C:\Program Files (x86)\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $isccPath) {
+            $isccPath = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          }
+          if (-not $isccPath) {
+            Write-Error "ISCC.exe not found!"
+            exit 1
+          }
           
-          echo Running ISCC...
-          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=%APP_VER% /DSourceDir="%SRC_DIR%" /DOutputDir="%OUTPUT_DIR%" "%ISS_PATH%"
+          Write-Host "ISCC: $($isccPath.FullName)"
+          Write-Host "AppVersion: $appVer"
+          Write-Host "SourceDir: $srcDir"
+          Write-Host "OutputDir: $outputDir"
           
-          echo Checking installer output...
-          dir "%OUTPUT_DIR%"
-          
-          if not exist "%OUTPUT_DIR%\rftranslator-%APP_VER%-setup.exe" (
-            echo ERROR: Installer not found!
-            exit /b 1
+          $wrapperPath = Join-Path $env:RUNNER_TEMP "build_installer.iss"
+          $lines = @(
+            "#define AppVersion `"$appVer`"",
+            "#define SourceDir `"$srcDir`"",
+            "#define OutputDir `"$outputDir`"",
+            "#include `"$issPath`""
           )
-          echo Installer created successfully!
+          [System.IO.File]::WriteAllLines($wrapperPath, $lines, [System.Text.Encoding]::UTF8)
+          
+          Write-Host "Wrapper ISS content:"
+          Get-Content $wrapperPath | ForEach-Object { Write-Host $_ }
+          
+          & $isccPath.FullName $wrapperPath
+          
+          $installerName = "rftranslator-$appVer-setup.exe"
+          $installerPath = Join-Path $outputDir $installerName
+          if (Test-Path $installerPath) {
+            Write-Host "Installer created: $installerPath"
+          } else {
+            Write-Error "Installer not found at: $installerPath"
+            exit 1
+          }
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
