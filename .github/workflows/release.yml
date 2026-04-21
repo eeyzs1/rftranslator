@@ -61,45 +61,32 @@ jobs:
           }
 
       - name: Build Inno Setup installer
-        shell: pwsh
+        shell: cmd
         run: |
-          $appVer = "${{ steps.prep.outputs.VERSION }}".Trim()
-          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}".Trim()
-          $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
-          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
-          if (-not $iscc) {
-            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          }
-          if (-not (Test-Path $iscc)) {
-            Write-Error "ISCC.exe not found"
-            exit 1
-          }
-          Write-Host "ISCC: $iscc"
-          Write-Host "AppVersion: $appVer"
-          Write-Host "SourceDir: $srcDir"
-          $wrapperPath = Join-Path $env:RUNNER_TEMP "build_installer.iss"
-          $outputDir = Join-Path $env:RUNNER_TEMP "installer_output"
-          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-          "#define AppVersion `"$appVer`"" | Set-Content -Path $wrapperPath -Encoding UTF8
-          "#define SourceDir `"$srcDir`"" | Add-Content -Path $wrapperPath -Encoding UTF8
-          "#define OutputDir `"$outputDir`"" | Add-Content -Path $wrapperPath -Encoding UTF8
-          "#include `"$issPath`"" | Add-Content -Path $wrapperPath -Encoding UTF8
-          Write-Host "Wrapper ISS created at: $wrapperPath"
-          Get-Content $wrapperPath | Write-Host
-          & $iscc $wrapperPath
-          $installerName = "rftranslator-$appVer-setup.exe"
-          $installerPath = Join-Path $outputDir $installerName
-          Write-Host "Expected installer path: $installerPath"
-          if (Test-Path $installerPath) {
-            $destPath = Join-Path "${{ github.workspace }}" "tools\installer\output"
-            New-Item -ItemType Directory -Path $destPath -Force | Out-Null
-            Copy-Item $installerPath $destPath
-            Write-Host "Installer copied to: $destPath\$installerName"
-          } else {
-            Write-Error "Installer not found at: $installerPath"
-            Get-ChildItem $outputDir -ErrorAction SilentlyContinue | Write-Host
-            exit 1
-          }
+          set APP_VER=${{ steps.prep.outputs.VERSION }}
+          set SRC_DIR=${{ steps.prep.outputs.BUILD_DIR }}
+          set ISS_PATH=${{ github.workspace }}\tools\installer\rftranslator.iss
+          set OUTPUT_DIR=${{ github.workspace }}\tools\installer\output
+          
+          echo Creating output directory...
+          if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+          
+          echo AppVersion=%APP_VER%
+          echo SourceDir=%SRC_DIR%
+          echo OutputDir=%OUTPUT_DIR%
+          echo ISS_PATH=%ISS_PATH%
+          
+          echo Running ISCC...
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=%APP_VER% /DSourceDir="%SRC_DIR%" /DOutputDir="%OUTPUT_DIR%" "%ISS_PATH%"
+          
+          echo Checking installer output...
+          dir "%OUTPUT_DIR%"
+          
+          if not exist "%OUTPUT_DIR%\rftranslator-%APP_VER%-setup.exe" (
+            echo ERROR: Installer not found!
+            exit /b 1
+          )
+          echo Installer created successfully!
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
