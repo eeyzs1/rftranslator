@@ -53,13 +53,53 @@ jobs:
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          choco install innosetup -y
+          $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+          if ($iscc) {
+            Write-Host "Inno Setup already installed at: $($iscc.Source)"
+          } else {
+            choco install innosetup -y
+          }
 
       - name: Build Inno Setup installer
         shell: pwsh
         run: |
+          $appVer = "${{ steps.prep.outputs.VERSION }}".Trim()
+          $srcDir = "${{ steps.prep.outputs.BUILD_DIR }}".Trim()
           $issPath = "${{ github.workspace }}\tools\installer\rftranslator.iss"
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion="${{ steps.prep.outputs.VERSION }}" /DSourceDir="${{ steps.prep.outputs.BUILD_DIR }}" "$issPath"
+          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found"
+            exit 1
+          }
+          Write-Host "ISCC: $iscc"
+          Write-Host "AppVersion: $appVer"
+          Write-Host "SourceDir: $srcDir"
+          $wrapperPath = Join-Path $env:RUNNER_TEMP "build_installer.iss"
+          $outputDir = Join-Path $env:RUNNER_TEMP "installer_output"
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          "#define AppVersion `"$appVer`"" | Set-Content -Path $wrapperPath -Encoding UTF8
+          "#define SourceDir `"$srcDir`"" | Add-Content -Path $wrapperPath -Encoding UTF8
+          "#define OutputDir `"$outputDir`"" | Add-Content -Path $wrapperPath -Encoding UTF8
+          "#include `"$issPath`"" | Add-Content -Path $wrapperPath -Encoding UTF8
+          Write-Host "Wrapper ISS created at: $wrapperPath"
+          Get-Content $wrapperPath | Write-Host
+          & $iscc $wrapperPath
+          $installerName = "rftranslator-$appVer-setup.exe"
+          $installerPath = Join-Path $outputDir $installerName
+          Write-Host "Expected installer path: $installerPath"
+          if (Test-Path $installerPath) {
+            $destPath = Join-Path "${{ github.workspace }}" "tools\installer\output"
+            New-Item -ItemType Directory -Path $destPath -Force | Out-Null
+            Copy-Item $installerPath $destPath
+            Write-Host "Installer copied to: $destPath\$installerName"
+          } else {
+            Write-Error "Installer not found at: $installerPath"
+            Get-ChildItem $outputDir -ErrorAction SilentlyContinue | Write-Host
+            exit 1
+          }
 
       - name: Upload ZIP to Release
         uses: softprops/action-gh-release@v2
