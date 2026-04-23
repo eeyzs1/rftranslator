@@ -464,7 +464,9 @@ class ModelManager extends _$ModelManager {
         File(path.join(dirPath, 'config.json')).existsSync()) {
       if (File(path.join(dirPath, 'shared_vocabulary.json')).existsSync()) return true;
       if (File(path.join(dirPath, 'source_vocabulary.json')).existsSync() &&
-          File(path.join(dirPath, 'target_vocabulary.json')).existsSync()) return true;
+          File(path.join(dirPath, 'target_vocabulary.json')).existsSync()) {
+        return true;
+      }
     }
     return false;
   }

@@ -113,8 +113,8 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                 value: 'speak',
                 child: Row(
                   children: [
-                    Icon(Icons.volume_up, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.volume_up, size: 20),
+                    const SizedBox(width: 8),
                     Text(l10n.speak),
                   ],
                 ),
@@ -123,8 +123,8 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                 value: 'share',
                 child: Row(
                   children: [
-                    Icon(Icons.share, size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.share, size: 20),
+                    const SizedBox(width: 8),
                     Text(l10n.share),
                   ],
                 ),

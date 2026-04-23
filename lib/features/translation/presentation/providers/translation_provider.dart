@@ -500,12 +500,12 @@ class TranslationNotifier extends StateNotifier<TranslationState> {
       } else {
         state = state.copyWith(
           hasLLMResult: true,
-          targetText: primaryResult!,
+          targetText: primaryResult,
           llmTranslation: primaryResult,
           modelResults: allModelResults,
           result: TranslationResult(
             sourceText: state.sourceText,
-            targetText: primaryResult!,
+            targetText: primaryResult,
             sourceLang: state.sourceLang,
             targetLang: state.targetLang,
             translatedAt: DateTime.now(),

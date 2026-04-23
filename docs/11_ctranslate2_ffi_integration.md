@@ -1,206 +1,105 @@
-# CTranslate2 FFI 集成方案
+# CTranslate2 FFI 集成 — rftranslator
 
-## 概述
+> **注意**：本文档描述当前已实现的 CTranslate2 FFI 集成。以源码为准。
 
-本文档描述如何通过 Dart FFI 直接调用 CTranslate2 的 C API，实现 OPUS-MT 模型的本地推理，无需 Python 进程。
+## 1. 概述
 
-## 架构
+rftranslator 通过 `dart:ffi` 直接调用 CTranslate2 C 库，实现本地 OPUS-MT 模型推理，无需 Python 或 HTTP 服务。
 
-```
-┌─────────────────────────────────────────────────┐
-│  Flutter App                                     │
-│  ┌─────────────────────────────────────────────┐ │
-│  │  TranslationProvider                        │ │
-│  │    ↓                                        │ │
-│  │  CTranslate2DataSource (Dart)               │ │
-│  │    ↓ FFI                                    │ │
-│  │  ctranslate2.dll / libctranslate2.so        │ │
-│  │    ↓                                        │ │
-│  │  OPUS-MT 模型 (CT2 格式, INT8 量化)         │ │
-│  └─────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+---
+
+## 2. FFI 绑定
+
+### 2.1 动态库加载
+
+```dart
+// ctranslate2_ffi.dart
+final DynamicLibrary _lib = Platform.isWindows
+    ? DynamicLibrary.open('ctranslate2.dll')
+    : DynamicLibrary.open('libctranslate2.so');
 ```
 
-## 为什么需要从源码编译
+搜索路径：
+- **Windows**: 当前目录 → `windows\libs\` → exe 同目录
+- **Android**: 应用 native 库目录
 
-CTranslate2 的 Python wheel 预编译包**不包含 C API 导出**：
-- Windows: `ctranslate2.dll` 只有 C++ mangled 符号和 pybind11 绑定
-- Linux: `libctranslate2.so` 同样只有 C++ 符号
+### 2.2 核心 FFI 函数
 
-C API 函数（如 `ctranslate2_Translator_new`）只在**从源码编译且启用 C API** 时才会导出。
+CTranslate2 C 库的核心函数通过 FFI 绑定暴露给 Dart：
 
-## 前置条件
+| 函数 | 说明 |
+|------|------|
+| `ctranslate2_Translator_new` | 创建翻译器实例 |
+| `ctranslate2_Translator_translate_batch` | 批量翻译 |
+| `ctranslate2_Translator_delete` | 销毁翻译器 |
+| `ctranslate2_TranslationResult_delete` | 销毁翻译结果 |
 
-### Windows
-- Visual Studio 2022 Build Tools (C++ 桌面开发工作负载)
-- CMake >= 3.16
-- Git
+---
 
-### Android
-- Android NDK (r25+)
-- CMake >= 3.16
-- Git
+## 3. 翻译流程
 
-### WSL (用于交叉编译 Android 版本)
-- Ubuntu 20.04+
-- CMake, Git, NDK
+### 3.1 完整流程
 
-## 编译步骤
+```
+1. 加载 CTranslate2 动态库
+2. 创建 Translator 实例（加载模型）
+3. 加载源语言和目标语言的 SentencePiece 分词器
+4. 输入文本 → 分词 → 翻译 → 解码
+5. 返回翻译结果
+```
 
-### 1. Windows x64 编译
+### 3.2 Isolate 隔离
 
-运行 `scripts/build_ctranslate2_windows.ps1`：
+翻译推理在独立 Isolate 中运行，通过 `TranslationIsolateWorker` 实现：
+
+```dart
+// 翻译请求通过 SendPort/ReceivePort 传递
+// 翻译结果通过 SendPort 返回主 Isolate
+// 支持模型热切换、超时重启、关闭信号
+```
+
+---
+
+## 4. 构建脚本
+
+### 4.1 Windows
 
 ```powershell
-# 在 PowerShell 中执行
-.\scripts\build_ctranslate2_windows.ps1
+# scripts/build_ctranslate2_windows.ps1
+# 从源码编译 CTranslate2，生成 ctranslate2.dll
 ```
 
-脚本会自动：
-1. 克隆 CTranslate2 源码
-2. 配置 CMake (启用 C API, INT8 量化支持)
-3. 编译 Release 版本
-4. 将 DLL 复制到 `windows/libs/` 目录
-
-### 2. Android ARM64 编译
-
-运行 `scripts/build_ctranslate2_android.sh`：
+### 4.2 Android
 
 ```bash
-# 在 WSL 中执行
-bash scripts/build_ctranslate2_android.sh
+# scripts/build_ctranslate2_android.sh
+# 交叉编译 CTranslate2，生成 libctranslate2.so
 ```
 
-脚本会自动：
-1. 克隆 CTranslate2 源码
-2. 使用 NDK 交叉编译
-3. 将 .so 复制到 `android/app/src/main/jniLibs/arm64-v8a/` 目录
-
-## 模型格式转换
-
-OPUS-MT 原始模型是 MarianMT 格式 (pytorch_model.bin)，需要转换为 CTranslate2 格式：
+### 4.3 WSL 环境
 
 ```bash
-python scripts/convert_model_to_ct2.py --model_dir E:\temp_dict\opus-mt-en-zh --output_dir E:\temp_dict\opus-mt-en-zh-ct2
+# scripts/build_android_wsl.sh
+# 在 WSL 环境下编译 Android 版本
 ```
 
-转换后的模型目录包含：
-- `model.bin` — 量化后的模型权重 (INT8)
-- `config.json` — 模型配置
-- `source_vocabulary.txt` — 源语言词表
-- `target_vocabulary.txt` — 目标语言词表
+---
 
-### 批量转换
+## 5. 运行时依赖
 
-```bash
-python scripts/convert_model_to_ct2.py --models_dir E:\temp_dict --output_dir E:\temp_dict\ct2_models
-```
+| 平台 | 文件 | 说明 |
+|------|------|------|
+| Windows | `ctranslate2.dll` | 放置在 exe 同目录 |
+| Android | `libctranslate2.so` | 放置在 `jniLibs/` 目录 |
+| Linux | `libctranslate2.so` | 放置在应用库目录 |
 
-会自动扫描 `models_dir` 下所有 `opus-mt-*` 文件夹并转换。
+---
 
-## C API 接口
+## 6. 错误处理
 
-CTranslate2 C API 核心函数：
-
-```c
-// 创建/销毁 Translator
-ctranslate2_Translator* ctranslate2_Translator_new(
-    const char* model_path,
-    const char* device,
-    int device_index,
-    const ctranslate2_TranslatorOptions* options
-);
-void ctranslate2_Translator_delete(ctranslate2_Translator* translator);
-
-// 翻译
-ctranslate2_TranslationResult** ctranslate2_Translator_translate_batch(
-    ctranslate2_Translator* translator,
-    const ctranslate2_StringVector* const* input,
-    size_t input_size,
-    const ctranslate2_TranslationOptions* options
-);
-
-// 获取翻译结果
-ctranslate2_StringVector* ctranslate2_TranslationResult_get_output(
-    const ctranslate2_TranslationResult* result,
-    size_t index
-);
-const char* ctranslate2_StringVector_at(
-    const ctranslate2_StringVector* vector,
-    size_t index
-);
-size_t ctranslate2_StringVector_size(
-    const ctranslate2_StringVector* vector
-);
-
-// 内存管理
-void ctranslate2_TranslationResult_delete(ctranslate2_TranslationResult* result);
-void ctranslate2_StringVector_delete(ctranslate2_StringVector* vector);
-
-// 选项
-ctranslate2_TranslatorOptions* ctranslate2_TranslatorOptions_new();
-void ctranslate2_TranslatorOptions_set_compute_type(
-    ctranslate2_TranslatorOptions* options,
-    const char* compute_type  // "int8" for quantized
-);
-void ctranslate2_TranslatorOptions_set_intra_threads(
-    ctranslate2_TranslatorOptions* options,
-    size_t num_threads
-);
-ctranslate2_TranslationOptions* ctranslate2_TranslationOptions_new();
-void ctranslate2_TranslationOptions_set_beam_size(
-    ctranslate2_TranslationOptions* options,
-    size_t beam_size
-);
-void ctranslate2_TranslationOptions_set_max_decoding_length(
-    ctranslate2_TranslationOptions* options,
-    size_t length
-);
-```
-
-## Dart FFI 绑定
-
-文件: `lib/core/ffi/ctranslate2_ffi.dart`
-
-封装了所有 C API 函数调用，提供类型安全的 Dart 接口。
-
-## CTranslate2DataSource
-
-文件: `lib/features/llm/data/datasources/ctranslate2_datasource.dart`
-
-实现 `LlmDataSource` 接口，通过 FFI 调用 CTranslate2：
-- `loadModel()` → 调用 `ctranslate2_Translator_new`
-- `generate()` → 调用 `ctranslate2_Translator_translate_batch`
-- `dispose()` → 调用 `ctranslate2_Translator_delete`
-
-## 性能对比
-
-| 方案 | 首次翻译 | 后续翻译 | Python 依赖 |
-|------|---------|---------|------------|
-| PyTorch (transformers) | ~5-8s | ~1-3s | ✅ 需要 |
-| CTranslate2 Python | ~3-5s | ~0.3-1s | ✅ 需要 |
-| **CTranslate2 FFI** | **~0.5-1s** | **~0.1-0.3s** | **❌ 不需要** |
-
-INT8 量化 + CTranslate2 优化引擎 + 无进程启动开销 = 10-30x 整体提速。
-
-## Fallback 策略
-
-```
-CTranslate2 FFI (首选)
-    ↓ DLL/SO 不存在
-OpusMtDataSource (Python 子进程, 备选)
-    ↓ Python 不存在
-显示错误提示
-```
-
-## 文件清单
-
-| 文件 | 用途 |
-|------|------|
-| `scripts/build_ctranslate2_windows.ps1` | Windows 编译脚本 |
-| `scripts/build_ctranslate2_android.sh` | Android 编译脚本 |
-| `scripts/convert_model_to_ct2.py` | 模型格式转换脚本 |
-| `lib/core/ffi/ctranslate2_ffi.dart` | Dart FFI 绑定 |
-| `lib/features/llm/data/datasources/ctranslate2_datasource.dart` | FFI 数据源 |
-| `windows/libs/ctranslate2.dll` | Windows DLL (编译后) |
-| `android/app/src/main/jniLibs/arm64-v8a/libctranslate2.so` | Android SO (编译后) |
+| 错误类型 | 处理方式 |
+|----------|----------|
+| 动态库加载失败 | 显示错误提示，引导用户检查安装 |
+| 模型加载失败 | 显示错误状态，支持重新加载/重新下载 |
+| 翻译超时 | 自动重启 Isolate，重试翻译 |
+| 内存不足 | 释放模型，显示提示 |
