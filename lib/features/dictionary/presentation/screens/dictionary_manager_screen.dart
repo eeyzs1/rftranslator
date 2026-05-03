@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -75,18 +77,22 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     if (!mounted) return;
 
     if (meta != null) {
-      AppToast.show(
-        context,
-        localeCode == 'zh'
-            ? '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})'
-            : '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})',
-      );
+      if (context.mounted) {
+        AppToast.show(
+          context,
+          localeCode == 'zh'
+              ? '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})'
+              : '${l10n.mdictImportSuccess}${meta.originalName} (${langDisplayName(meta.sourceLang, localeCode)} → ${langDisplayName(meta.targetLang, localeCode)})',
+        );
+      }
       setState(() {});
     } else {
-      AppToast.show(
-        context,
-        l10n.mdictImportFailed,
-      );
+      if (context.mounted) {
+        AppToast.show(
+          context,
+          l10n.mdictImportFailed,
+        );
+      }
     }
   }
 
@@ -106,7 +112,7 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     ).toList();
 
     if (ifoFiles.isEmpty) {
-      if (mounted) {
+      if (mounted && context.mounted) {
         AppToast.show(
           context,
           localeCode == 'zh' ? l10n.noIfoFileFound : l10n.noIfoFileFound,
@@ -120,10 +126,12 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
     await manager.setDictionaryPath(ifoPath);
 
     if (!mounted) return;
-    AppToast.show(
-      context,
-      localeCode == 'zh' ? '${l10n.starDictImported}${path.basename(ifoPath)}' : '${l10n.starDictImported}${path.basename(ifoPath)}',
-    );
+    if (context.mounted) {
+      AppToast.show(
+        context,
+        localeCode == 'zh' ? '${l10n.starDictImported}${path.basename(ifoPath)}' : '${l10n.starDictImported}${path.basename(ifoPath)}',
+      );
+    }
     setState(() {});
   }
 
@@ -270,9 +278,21 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                                 final isDownloaded = downloadedDicts[meta.id] ?? false;
                                 final tgtName = langDisplayName(meta.targetLang, localeCode);
 
-                                return RadioListTile<String>(
+                                final isSelected = dictState.selectedId == meta.id;
+                                return ListTile(
                                   dense: true,
                                   contentPadding: const EdgeInsets.only(left: 16),
+                                  leading: Radio<String>(
+                                    value: meta.id,
+                                    groupValue: dictState.selectedId,
+                                    onChanged: dictState.downloadStatus == DownloadStatus.downloading
+                                        ? null
+                                        : (value) {
+                                            if (value != null) {
+                                              manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
+                                            }
+                                          },
+                                  ),
                                   title: Row(
                                     children: [
                                       Expanded(
@@ -312,13 +332,11 @@ class _DictionaryManagerScreenState extends ConsumerState<DictionaryManagerScree
                                       ),
                                     ],
                                   ),
-                                  value: meta.id,
-                                  groupValue: dictState.selectedId,
-                                  onChanged: dictState.downloadStatus == DownloadStatus.downloading
+                                  onTap: dictState.downloadStatus == DownloadStatus.downloading
                                       ? null
-                                      : (value) {
-                                          if (value != null) {
-                                            manager.selectDictionary(value).then((_) => _loadDictionaryStatus());
+                                      : () {
+                                          if (!isSelected) {
+                                            manager.selectDictionary(meta.id).then((_) => _loadDictionaryStatus());
                                           }
                                         },
                                 );

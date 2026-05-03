@@ -150,13 +150,13 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
             Icon(
               Icons.search_off,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
               _errorMessage ?? l10n.noDictionaryEntryFound,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 16),
@@ -229,7 +229,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                         definition.english!,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -273,7 +273,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
                         example.chinese!,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -302,7 +302,7 @@ class _WordDetailScreenState extends ConsumerState<WordDetailScreen> {
   }
 
   void _shareWord() {
-    final text = _formatForCopy();
+    _formatForCopy();
   }
 
   void _speakWord() {}

@@ -45,7 +45,9 @@ class FavoritesScreen extends ConsumerWidget {
                       );
                       if (confirmed == true) {
                         await ref.read(translationFavoriteListProvider.notifier).clearAll();
-                        AppToast.show(context, l10n.favoritesCleared);
+                        if (context.mounted) {
+                          AppToast.show(context, l10n.favoritesCleared);
+                        }
                       }
                     },
                   )

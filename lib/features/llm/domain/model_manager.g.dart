@@ -6,7 +6,7 @@ part of 'model_manager.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$modelManagerHash() => r'28bc072dc8e8c4dd6d3c390dd747021aa0e23624';
+String _$modelManagerHash() => r'b22a5409e88624b151bc52546b054fcc6b268517';
 
 /// See also [ModelManager].
 @ProviderFor(ModelManager)

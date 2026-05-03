@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rftranslator/core/localization/app_localizations.dart';
 import 'package:rftranslator/core/utils/platform_utils.dart';
 import 'package:rftranslator/features/llm/domain/model_manager.dart';
 import 'package:rftranslator/features/dictionary/domain/dictionary_manager.dart';
+import 'package:rftranslator/features/image_translation/domain/ocr_model_manager_provider.dart';
 
 const List<Color> _presetColors = [
   Color(0xFFE8002D),
@@ -151,6 +152,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailing: FilledButton(
                       onPressed: () {
                         context.push('/settings/model-download');
+                      },
+                      child: Text(l10n.manage),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+          const Divider(),
+          const _SectionHeader('OCR Settings'),
+          Consumer(
+            builder: (context, ref, child) {
+              final manager = ref.read(ocrModelManagerProvider.notifier);
+              return FutureBuilder<bool>(
+                future: manager.isAnyModelDownloaded(),
+                builder: (context, snapshot) {
+                  final isAvailable = snapshot.data ?? false;
+                  return ListTile(
+                    title: const Text('OCR Model'),
+                    subtitle: Text(isAvailable ? 'Models installed' : 'Not installed'),
+                    trailing: FilledButton(
+                      onPressed: () {
+                        context.push('/settings/ocr-model');
                       },
                       child: Text(l10n.manage),
                     ),

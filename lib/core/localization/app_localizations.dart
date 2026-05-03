@@ -256,6 +256,15 @@ class AppLocalizations {
       'installedModelsDesc': 'Checked models will be used automatically during translation (matched by language pair)',
       'installedCount': 'installed',
       'architectureOverviewText': 'Architecture Overview\n\n\u2022 Encoder-Decoder architecture optimized for long sentence translation\n\nTranslation Flow:\n1. Words/Phrases \u2192 StarDict Dictionary\n2. Sentences/Paragraphs \u2192 Encoder-Decoder Model\n3. Dictionary not found \u2192 Encoder-Decoder fallback',
+      'imageTranslation': 'Image Translation',
+      'tapToSelectImage': 'Tap to select an image',
+      'fromGallery': 'From Gallery',
+      'fromCamera': 'From Camera',
+      'recognizeAndTranslate': 'Recognize & Translate',
+      'recognizingText': 'Recognizing text...',
+      'processing': 'Processing...',
+      'recognizedText': 'Recognized Text',
+      'noTextRecognized': 'No text recognized in the image',
     },
     'zh': {
       'appTitle': 'rftranslator',
@@ -456,6 +465,15 @@ class AppLocalizations {
       'installedModelsDesc': '\u52FE\u9009\u7684\u6A21\u578B\u5C06\u5728\u7FFB\u8BD1\u65F6\u81EA\u52A8\u4F7F\u7528\uFF08\u6839\u636E\u8BED\u5BF9\u5339\u914D\uFF09',
       'installedCount': '\u5DF2\u5B89\u88C5',
       'architectureOverviewText': '\u67B6\u6784\u8BF4\u660E\n\n\u2022 Encoder-Decoder \u67B6\u6784\u6A21\u578B\uFF0C\u4E13\u4E3A\u957F\u53E5\u7FFB\u8BD1\u4F18\u5316\n\n\u7FFB\u8BD1\u6D41\u7A0B:\n1. \u5355\u8BCD/\u77ED\u8BED \u2192 StarDict \u8BCD\u5178\n2. \u957F\u53E5/\u6BB5\u843D \u2192 Encoder-Decoder \u6A21\u578B\n3. \u8BCD\u5178\u672A\u627E\u5230 \u2192 Encoder-Decoder \u5156\u5E95',
+      'imageTranslation': '\u8BC6\u56FE\u7FFB\u8BD1',
+      'tapToSelectImage': '\u70B9\u51FB\u9009\u62E9\u56FE\u7247',
+      'fromGallery': '\u4ECE\u76F8\u518C\u9009\u62E9',
+      'fromCamera': '\u62CD\u7167',
+      'recognizeAndTranslate': '\u8BC6\u522B\u5E76\u7FFB\u8BD1',
+      'recognizingText': '\u6B63\u5728\u8BC6\u522B\u6587\u5B57...',
+      'processing': '\u5904\u7406\u4E2D...',
+      'recognizedText': '\u8BC6\u522B\u7ED3\u679C',
+      'noTextRecognized': '\u672A\u5728\u56FE\u7247\u4E2D\u8BC6\u522B\u5230\u6587\u5B57',
     },
   };
 
@@ -660,6 +678,15 @@ class AppLocalizations {
   String get installedModelsDesc => _t('installedModelsDesc');
   String get installedCount => _t('installedCount');
   String get architectureOverviewText => _t('architectureOverviewText');
+  String get imageTranslation => _t('imageTranslation');
+  String get tapToSelectImage => _t('tapToSelectImage');
+  String get fromGallery => _t('fromGallery');
+  String get fromCamera => _t('fromCamera');
+  String get recognizeAndTranslate => _t('recognizeAndTranslate');
+  String get recognizingText => _t('recognizingText');
+  String get processing => _t('processing');
+  String get recognizedText => _t('recognizedText');
+  String get noTextRecognized => _t('noTextRecognized');
 }
 
 class _AppLocalizationsDelegate

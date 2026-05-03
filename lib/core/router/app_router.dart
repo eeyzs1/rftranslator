@@ -9,6 +9,8 @@ import 'package:rftranslator/features/history/presentation/screens/history_scree
 import 'package:rftranslator/features/llm/presentation/screens/model_download_screen.dart';
 import 'package:rftranslator/features/main/presentation/screens/init_screen.dart';
 import 'package:rftranslator/features/settings/presentation/screens/settings_screen.dart';
+import 'package:rftranslator/features/image_translation/presentation/screens/image_translation_screen.dart';
+import 'package:rftranslator/features/image_translation/presentation/screens/ocr_model_settings_screen.dart';
 import 'package:rftranslator/features/translation/presentation/screens/translation_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -19,6 +21,7 @@ typedef NavDest = ({IconData icon, IconData selectedIcon, String labelKey, Strin
 
 const List<NavDest> _destinations = [
   (icon: Icons.translate_outlined, selectedIcon: Icons.translate, labelKey: 'translate', route: '/'),
+  (icon: Icons.image_outlined, selectedIcon: Icons.image, labelKey: 'imageTranslation', route: '/image-translation'),
   (icon: Icons.star_outlined, selectedIcon: Icons.star, labelKey: 'favorites', route: '/favorites'),
   (icon: Icons.history, selectedIcon: Icons.history, labelKey: 'history', route: '/history'),
   (icon: Icons.settings_outlined, selectedIcon: Icons.settings, labelKey: 'settings', route: '/settings'),
@@ -28,6 +31,7 @@ String _getLabel(BuildContext context, String labelKey) {
   final l10n = AppLocalizations.of(context);
   return switch (labelKey) {
     'translate' => l10n.translate,
+    'imageTranslation' => l10n.imageTranslation,
     'favorites' => l10n.favorites,
     'history' => l10n.history,
     'settings' => l10n.settings,
@@ -54,6 +58,10 @@ final appRouter = GoRouter(
           builder: (context, state) => const TranslationScreen(),
         ),
         GoRoute(
+          path: '/image-translation',
+          builder: (context, state) => const ImageTranslationScreen(),
+        ),
+        GoRoute(
           path: '/favorites',
           builder: (context, state) => const FavoritesScreen(),
         ),
@@ -77,6 +85,13 @@ final appRouter = GoRouter(
               parentNavigatorKey: _rootNavigatorKey,
               pageBuilder: (context, state) => const MaterialPage(
                 child: DictionaryManagerScreen(),
+              ),
+            ),
+            GoRoute(
+              path: 'ocr-model',
+              parentNavigatorKey: _rootNavigatorKey,
+              pageBuilder: (context, state) => const MaterialPage(
+                child: OcrModelSettingsScreen(),
               ),
             ),
           ],

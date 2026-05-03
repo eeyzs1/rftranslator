@@ -7,10 +7,66 @@ on:
     branches: [main]
 
 jobs:
+  validate-assets:
+    name: Validate Assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON assets
+        run: |
+          errors=0
+          for f in assets/data/*.json; do
+            if [ -f "$f" ]; then
+              if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
+                echo "::error file=$f::Invalid JSON: $f"
+                errors=$((errors + 1))
+              else
+                echo "OK: $f"
+              fi
+            fi
+          done
+          if [ $errors -gt 0 ]; then
+            echo "Found $errors invalid JSON file(s)"
+            exit 1
+          fi
+
+      - name: Validate term glossary structure
+        run: |
+          python3 -c "
+          import json, sys
+          with open('assets/data/term_glossary.json', 'r', encoding='utf-8') as f:
+              d = json.load(f)
+          if 'enZhTerms' not in d:
+              print('::error::Missing enZhTerms key'); sys.exit(1)
+          if 'wrongTranslations' not in d:
+              print('::error::Missing wrongTranslations key'); sys.exit(1)
+          if not isinstance(d['enZhTerms'], dict):
+              print('::error::enZhTerms must be a dict'); sys.exit(1)
+          if not isinstance(d['wrongTranslations'], dict):
+              print('::error::wrongTranslations must be a dict'); sys.exit(1)
+          print(f'enZhTerms: {len(d[\"enZhTerms\"])} entries')
+          print(f'wrongTranslations: {len(d[\"wrongTranslations\"])} entries')
+          "
+
+      - name: Validate english dictionary structure
+        run: |
+          python3 -c "
+          import json, sys
+          with open('assets/data/english_dictionary.json', 'r', encoding='utf-8') as f:
+              d = json.load(f)
+          if not isinstance(d, dict):
+              print('::error::Dictionary must be a dict'); sys.exit(1)
+          print(f'Dictionary: {len(d)} entries')
+          "
+
   analyze-and-test:
     name: Analyze & Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: validate-assets
 
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +95,7 @@ jobs:
     name: Build Windows (Check)
     runs-on: windows-latest
     timeout-minutes: 30
+    needs: analyze-and-test
 
     steps:
       - uses: actions/checkout@v4

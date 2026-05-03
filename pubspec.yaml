@@ -62,6 +62,9 @@ dependencies:
 
   # LLM 本地推理（llamadart - llama.cpp 的 Dart/Flutter 插件）
   llamadart: ^0.6.9
+  image_picker: ^1.2.2
+  image: ^4.8.0
+  flutter_onnxruntime: ^1.7.0
 
 dev_dependencies:
   flutter_test:
@@ -73,3 +76,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/models/ocr/ppocrv5_dict.txt
+    - assets/models/ocr/ppocr_keys_v1.txt
+    - assets/data/term_glossary.json
+    - assets/data/english_dictionary.json
